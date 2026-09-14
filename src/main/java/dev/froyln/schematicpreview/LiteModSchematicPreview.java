@@ -1,0 +1,40 @@
+package dev.froyln.schematicpreview;
+
+import java.io.File;
+import com.mumfrey.liteloader.Configurable;
+import com.mumfrey.liteloader.LiteMod;
+import com.mumfrey.liteloader.modconfig.ConfigPanel;
+import fi.dy.masa.malilib.registry.Registry;
+import dev.froyln.schematicpreview.config.SchematicPreviewConfigPanel;
+
+public class LiteModSchematicPreview implements LiteMod, Configurable
+{
+    @Override
+    public String getName()
+    {
+        return Reference.MOD_NAME;
+    }
+
+    @Override
+    public String getVersion()
+    {
+        return Reference.MOD_VERSION;
+    }
+
+    @Override
+    public Class<? extends ConfigPanel> getConfigPanelClass()
+    {
+        return SchematicPreviewConfigPanel.class;
+    }
+
+    @Override
+    public void init(File configPath)
+    {
+        Registry.INITIALIZATION_DISPATCHER.registerInitializationHandler(new InitHandler());
+    }
+
+    @Override
+    public void upgradeSettings(String version, File configPath, File oldConfigPath)
+    {
+    }
+}

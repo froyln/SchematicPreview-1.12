@@ -1,0 +1,139 @@
+buildscript {
+    repositories {
+        maven {
+            name = "forge"
+            url = "https://maven.minecraftforge.net"
+        }
+        maven {
+            name = 'sponge'
+            url = 'https://repo.spongepowered.org/repository/maven-public'
+        }
+    }
+
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+    }
+}
+
+repositories {
+    maven {
+        url 'https://masa.dy.fi/maven'
+    }
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.liteloader'
+apply plugin: 'org.spongepowered.mixin'
+
+ext.configFile = file "build.properties"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    options.encoding = 'UTF-8'
+}
+
+configFile.withReader {
+    def prop = new Properties()
+    prop.load(it)
+    project.ext.config = new ConfigSlurper().parse prop
+}
+
+minecraft {
+    version = config.minecraft_version
+    mappings = config.mappings_version
+    runDir = 'minecraft'
+    makeObfSourceJar = false
+
+    ext.mod_version = config.mod_version
+
+    if (mod_version.endsWith('-dev')) {
+        mod_version = mod_version + "." + new Date().format('yyyyMMdd.HHmmss')
+    }
+
+    replaceIn "Reference.java"
+    replace "@MOD_VERSION@", mod_version
+}
+
+dependencies {
+    deobfCompile "fi.dy.masa.malilib:malilib-liteloader-" + config.minecraft_version_out + ":" + config.malilib_version + ":deobf"
+
+    // Litematica LiteLoader is not published to a Maven repo. Drop the .litemod file in
+    // libs/ (see README "Building"), matched here by the flatDir repo above. A .litemod is
+    // a plain jar/zip under a different extension - tell the flatDir resolver about it.
+    deobfCompile name: "litematica-liteloader-" + config.minecraft_version_out + "-" + config.litematica_version, ext: "litemod"
+}
+
+sourceSets {
+    main {
+        ext.refMap = 'mixins.' + config.mod_id + '.refmap.json'
+    }
+}
+
+group = config.group + "." + config.mod_id // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = config.mod_file_name + '-' + config.minecraft_version_out
+version = project.minecraft.mod_version
+
+/**
+ * This section allows you to customise the generated litemod.json file
+ */
+litemod {
+    json {
+        name = config.mod_id
+        displayName = config.mod_name
+        mcversion = config.minecraft_version
+        version = config.mod_version
+        author = config.author
+
+        dependsOn = [ 'malilib', 'litematica' ]
+        mixinConfigs = [ 'mixins.' + config.mod_id + '.json' ]
+    }
+}
+
+/**
+ * This section allows you to customise your generated jar (litemod) file. By
+ * default it includes the generated litemod.json file, however if you prefer to
+ * include your own file from resources, simply remove the line below.
+ */
+jar {
+    // Remove the "-mc1.12" suffix from the file name
+    classifier = ""
+    // Don't append a 'mod-' filename prefix >_>
+    baseName = archivesBaseName
+
+    from litemod.outputs
+}
+
+mixin {
+    defaultObfuscationEnv notch
+}
+
+processResources
+{
+    // Exclude the GIMP image files
+    exclude '**/*.xcf'
+    exclude '**/xcf'
+
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "mod_version", project.minecraft.mod_version
+    inputs.property "minecraft_version", project.config.minecraft_version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        // replace version and mcversion
+        expand 'mod_version': project.minecraft.mod_version, 'minecraft_version': project.config.minecraft_version
+    }
+
+    // copy everything else, that's not the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}

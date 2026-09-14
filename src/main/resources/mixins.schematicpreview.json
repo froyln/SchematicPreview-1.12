@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "dev.froyln.schematicpreview.mixin",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "mixins.schematicpreview.refmap.json",
+	"minVersion": "0.7",
+	"client": [
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

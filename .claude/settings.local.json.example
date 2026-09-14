@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to settings.local.json (gitignored). Personal overrides for this project.",
+  "env": {
+    "CLAUDE_VERIFY_ON_STOP": "0",
+    "CLAUDE_CANARY": "Felix"
+  },
+  "permissions": {
+    "allow": []
+  }
+}

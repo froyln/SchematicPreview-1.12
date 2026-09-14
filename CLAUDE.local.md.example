@@ -1,0 +1,8 @@
+# CLAUDE.local.md — personal, gitignored
+
+<!-- Copy to CLAUDE.local.md. Loaded after CLAUDE.md, only on this machine. -->
+
+- JDK 8 path on this machine: /usr/lib/jvm/java-8-openjdk (export JAVA_HOME before ./gradlew)
+- Dev client run dir: ./minecraft — test schematics in ./minecraft/schematics/
+- Litematica .litemod for libs/ downloaded to: ~/Downloads/litematica-liteloader-1.12.2-0.31.3.litemod
+- Reference sources (read-only): /tmp/ref/SchematicPreview, /tmp/ref/litematica, /tmp/ref/malilib

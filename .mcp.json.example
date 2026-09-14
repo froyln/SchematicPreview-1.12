@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "<server-name>": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "<package>"],
+      "env": { "API_KEY": "${API_KEY}" }
+    }
+  }
+}

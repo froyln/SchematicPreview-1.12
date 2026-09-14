@@ -1,0 +1,46 @@
+schematicpreview.config=SchematicPreview Configs - %s
+schematicpreview.config.tab.generic=Generic
+schematicpreview.config.tab.menu=Menu
+schematicpreview.config.tab.preview=Preview
+schematicpreview.config.tab.hotkeys=Hotkeys
+
+schematicpreview.config.name.enabled=Enabled
+schematicpreview.config.name.openconfigscreen=Open config screen
+schematicpreview.config.name.previewtype=Preview type
+schematicpreview.config.name.entrygapx=Entry gap X
+schematicpreview.config.name.entrygapy=Entry gap Y
+schematicpreview.config.name.listentryheight=List entry height
+schematicpreview.config.name.listpreviewentryheight=List preview entry height
+schematicpreview.config.name.tileheightratio=Tile height ratio
+schematicpreview.config.name.previewmaxvolume=Preview max volume
+schematicpreview.config.name.rendertileentities=Render tile entities
+schematicpreview.config.name.previewfov=Preview FOV
+schematicpreview.config.name.previewrotationy=Preview rotation Y
+schematicpreview.config.name.previewrotationx=Preview rotation X
+
+schematicpreview.config.comment.enabled=Toggle mod enabled
+schematicpreview.config.comment.previewType=Selected browser entry type
+schematicpreview.config.comment.entryGapX=Browser entry X axis gap
+schematicpreview.config.comment.entryGapY=Browser entry Y axis gap
+schematicpreview.config.comment.listEntryHeight=Height of entry for browser type "List"
+schematicpreview.config.comment.listPreviewEntryHeight=Height of entry for browser type "List Preview"
+schematicpreview.config.comment.tileHeightRatio=Width/Height ratio of entries for Tile browser types
+schematicpreview.config.comment.previewMaxVolume=Max. schematic volume in list/tile preview
+schematicpreview.config.comment.renderTileEntities=Toggle rendering tile entities in previews
+schematicpreview.config.comment.previewFov=3D preview FOV
+schematicpreview.config.comment.previewRotationY=3D preview Y rotation
+schematicpreview.config.comment.previewRotationX=3D preview X rotation
+
+schematicpreview.hotkey.name.openconfigscreen=Open config screen
+schematicpreview.hotkey.comment.openconfigscreen=Hotkey to open the SchematicPreview config screen
+schematicpreview.hotkeys.category.generic=SchematicPreview hotkeys
+
+schematicpreview.button.fullscreen=Fullscreen
+schematicpreview.button.freecam=Freecam
+schematicpreview.button.change_directory_icon=Right-click to change icon
+schematicpreview.gui.change_directory_icon=Item id for icon or empty to use default icon
+schematicpreview.gui.change_directory_icon.pos=Position: %s
+schematicpreview.gui.replace_block=Replace
+schematicpreview.gui.replace_block.title=Replace %s with
+schematicpreview.gui.replace_block.result=Replaced %s blocks with %s
+schematicpreview.gui.block_select.search=Search

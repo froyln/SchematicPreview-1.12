@@ -1,0 +1,31 @@
+# Claude Code personal files
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/logs/
+.claude/agent-memory-local/
+.claude/scheduled_tasks.lock
+
+# Secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Gradle / ForgeGradle
+.gradle/
+build/
+out/
+# runClient run dir
+minecraft/
+# litematica .litemod + pinned JDK 8, both fetched by tools/setup-build-deps.py
+libs/
+.jdk-cache/
+build.number
+
+# IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+bin/
