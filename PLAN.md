@@ -22,7 +22,7 @@ T1 → T2 → T3 → T4; T5 needs only T1; T6 last.
 
 ## Task: Bootstrap the LiteLoader mod skeleton
 
-**Status:** done (uncommitted)
+**Status:** done (`83d7812`)
 
 Create the buildable, loadable mod with configs, hotkey and config screen but no features.
 **Java 8 only. Must build with `./gradlew build` under JDK 8 and show up in the LiteLoader
@@ -314,7 +314,10 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
 
 ## Done
 
-(nothing yet)
+- Bootstrap the LiteLoader mod skeleton — done (`83d7812`), buildable/loadable mod shell:
+  LiteMod entry, malilib configs (Generic/Menu/Preview) + hotkey + config screen, empty tick
+  handler. `./gradlew build` verified from a clean tree; `runClient` in-game check still
+  needed on a normal network (see task notes above).
 
 ## Dropped / deferred
 
