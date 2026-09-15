@@ -233,7 +233,7 @@ resource freed when the screen closes; GL state restored after each draw.**
 
 ## Task: Browser entry types (list preview + tile grid) and preview-type button
 
-**Status:** pending
+**Status:** in progress
 
 Per-entry previews and multi-column tile layouts in the schematic browser, cycled by a small
 button next to the directory navigation bar (left click forward, right click backward).
