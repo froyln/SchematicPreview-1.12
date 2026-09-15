@@ -49,6 +49,7 @@ export JAVA_HOME=.jdk-cache/jdk8u302-b08 # JDK 8; use the pinned 8u302 (see Gotc
 ./gradlew build                 # build → build/libs/schematicpreview-liteloader-1.12.2-<ver>.litemod
 ./gradlew runClient             # run MC 1.12.2 dev client from ./minecraft (LiteLoader tweaker)
 ./gradlew compileJava           # fast check while iterating
+tools/test-in-game.sh           # alternative to runClient - see Verification below
 ```
 
 No unit tests. `compileJava` is the smallest check; `build` also runs mixin refmap generation
@@ -63,9 +64,21 @@ The check that must pass before any change is called done:
 ./gradlew build      # must exit 0 with JAVA_HOME pointing at JDK 8
 ```
 
-Then verify by hand in `./gradlew runClient` (LiteLoader mods menu → the mod is listed; open
-Litematica → Load Schematics): the acceptance items of the current `PLAN.md` task describe
-what to look at. There are no automated tests for rendering.
+Then verify by hand: the acceptance items of the current `PLAN.md` task describe what to look
+at. There are no automated tests for rendering. Two ways to get an in-game session:
+
+- `./gradlew runClient` — the dev client, from `./minecraft` (LiteLoader mods menu → the mod is
+  listed; open Litematica → Load Schematics). On this network its first-run asset download is
+  unreliable (`resources.download.minecraft.net` returns HTTP 400 for most sound assets — a
+  CDN/network issue, not this project's bug).
+- `./gradlew build && tools/test-in-game.sh` — copies the freshly built litemod into the
+  existing PrismLauncher instance at `~/.local/share/PrismLauncher/instances/1.12.2 test ai`
+  (already has LiteLoader 1.12.2, litematica, and malilib installed, assets already downloaded,
+  a folder of real schematics under `minecraft/schematics/`) and launches straight into it,
+  offline, via `prismlauncher --launch`. Preferred when `runClient` stalls. That instance's
+  malilib is **0.54.0**, one minor version ahead of this project's pinned `0.53.0` — noted as a
+  possible source of divergence if something behaves differently there than in `runClient`, but
+  not expected to matter (malilib versions are additive).
 
 This command is also what `.claude/hooks/verify-on-stop.sh` runs when enabled, and the
 default `/goal` condition: "`./gradlew build` exits 0".
