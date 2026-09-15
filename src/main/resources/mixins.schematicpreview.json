@@ -5,6 +5,7 @@
 	"refmap": "mixins.schematicpreview.refmap.json",
 	"minVersion": "0.7",
 	"client": [
+		"SchematicInfoWidgetMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

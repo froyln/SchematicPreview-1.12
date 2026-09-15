@@ -1,0 +1,320 @@
+package dev.froyln.schematicpreview.gui;
+
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import javax.annotation.Nullable;
+
+import org.lwjgl.opengl.GL11;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+
+import fi.dy.masa.malilib.gui.BaseScreen;
+import fi.dy.masa.malilib.gui.util.ScreenContext;
+import fi.dy.masa.malilib.gui.widget.InteractableWidget;
+import fi.dy.masa.malilib.render.ShapeRenderUtils;
+import fi.dy.masa.malilib.util.StringUtils;
+
+import dev.froyln.schematicpreview.config.Configs;
+import dev.froyln.schematicpreview.render.PreviewCache;
+import dev.froyln.schematicpreview.render.PreviewRenderer;
+import fi.dy.masa.litematica.schematic.ISchematic;
+
+/**
+ * Live 3D render of a schematic, tessellated and cached by {@link PreviewCache}. Each instance
+ * (side panel, fullscreen) owns its own {@link Framebuffer} sized to its own pixel dimensions,
+ * and its own camera state; the tessellated geometry itself is shared via the cache.
+ */
+public class PreviewWidget extends InteractableWidget
+{
+    private static final int BUTTON_SIZE = 12;
+    private static final double MIN_DISTANCE = 1.5;
+
+    private Path path;
+    @Nullable private Framebuffer fbo;
+    private int fboScale;
+
+    private boolean cameraInitialized;
+    private float yRot;
+    private float xRot;
+    private double distance;
+    private double targetX;
+    private double targetY;
+    private double targetZ;
+    private double maxDistance = 64.0;
+
+    private boolean freecam;
+    private boolean dragging;
+    private int dragButton;
+    private int dragStartMouseX;
+    private int dragStartMouseY;
+    private float dragStartYRot;
+    private float dragStartXRot;
+    private double dragStartTargetX;
+    private double dragStartTargetY;
+    private double dragStartTargetZ;
+
+    public PreviewWidget(int x, int y, int width, int height, Path path)
+    {
+        super(x, y, width, height);
+
+        this.setPath(path);
+    }
+
+    public void setPath(Path path)
+    {
+        if (path.equals(this.path) == false)
+        {
+            this.path = path;
+            this.cameraInitialized = false;
+        }
+    }
+
+    private void openFullscreen()
+    {
+        BaseScreen.openScreenWithParent(new PreviewFullscreenScreen(this.path));
+    }
+
+    private boolean isOverFullscreenButton(int mouseX, int mouseY)
+    {
+        int x = this.getFullscreenButtonX();
+        int y = this.getY() + 2;
+        return mouseX >= x && mouseX < x + BUTTON_SIZE && mouseY >= y && mouseY < y + BUTTON_SIZE;
+    }
+
+    private boolean isOverFreecamButton(int mouseX, int mouseY)
+    {
+        int x = this.getFreecamButtonX();
+        int y = this.getY() + 2;
+        return mouseX >= x && mouseX < x + BUTTON_SIZE && mouseY >= y && mouseY < y + BUTTON_SIZE;
+    }
+
+    private int getFullscreenButtonX()
+    {
+        return this.getRight() - 2 - BUTTON_SIZE;
+    }
+
+    private int getFreecamButtonX()
+    {
+        return this.getFullscreenButtonX() - 2 - BUTTON_SIZE;
+    }
+
+    @Override
+    protected boolean onMouseClicked(int mouseX, int mouseY, int mouseButton)
+    {
+        if (mouseButton == 0 && this.isOverFullscreenButton(mouseX, mouseY))
+        {
+            this.openFullscreen();
+            return true;
+        }
+
+        if (mouseButton == 0 && this.isOverFreecamButton(mouseX, mouseY))
+        {
+            this.freecam = !this.freecam;
+            return true;
+        }
+
+        if (mouseButton == 0 || mouseButton == 1)
+        {
+            this.dragging = true;
+            this.dragButton = mouseButton;
+            this.dragStartMouseX = mouseX;
+            this.dragStartMouseY = mouseY;
+            this.dragStartYRot = this.yRot;
+            this.dragStartXRot = this.xRot;
+            this.dragStartTargetX = this.targetX;
+            this.dragStartTargetY = this.targetY;
+            this.dragStartTargetZ = this.targetZ;
+            return true;
+        }
+
+        return super.onMouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    public void onMouseReleased(int mouseX, int mouseY, int mouseButton)
+    {
+        this.dragging = false;
+        super.onMouseReleased(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    public boolean onMouseMoved(int mouseX, int mouseY)
+    {
+        if (this.dragging)
+        {
+            int dx = mouseX - this.dragStartMouseX;
+            int dy = mouseY - this.dragStartMouseY;
+            boolean rotating = (this.dragButton == 0) != this.freecam;
+
+            if (rotating)
+            {
+                this.yRot = this.dragStartYRot + dx * 0.5f;
+                this.xRot = MathHelper.clamp(this.dragStartXRot - dy * 0.5f, -90f, 90f);
+            }
+            else
+            {
+                // ponytail: pan uses a yaw-only right vector and world-up, ignoring pitch -
+                // good enough for a preview pan, a full trackball basis isn't worth it here.
+                double yawRad = Math.toRadians(this.dragStartYRot);
+                double rightX = Math.cos(yawRad);
+                double rightZ = Math.sin(yawRad);
+                double panScale = this.distance / 300.0;
+
+                this.targetX = this.dragStartTargetX - dx * rightX * panScale;
+                this.targetZ = this.dragStartTargetZ - dx * rightZ * panScale;
+                this.targetY = this.dragStartTargetY + dy * panScale;
+            }
+
+            return true;
+        }
+
+        return super.onMouseMoved(mouseX, mouseY);
+    }
+
+    @Override
+    protected boolean onMouseScrolled(int mouseX, int mouseY, double mouseWheelDelta)
+    {
+        double factor = mouseWheelDelta < 0 ? 1.1 : (1.0 / 1.1);
+        this.distance = MathHelper.clamp(this.distance * factor, MIN_DISTANCE, this.maxDistance);
+        return true;
+    }
+
+    @Override
+    public void renderAt(int x, int y, float z, ScreenContext ctx)
+    {
+        super.renderAt(x, y, z, ctx);
+
+        int width = this.getWidth();
+        int height = this.getHeight();
+
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        CompletableFuture<ISchematic> future = PreviewCache.getSchematic(this.path);
+
+        if (future.isDone() == false)
+        {
+            this.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.loading", ctx);
+            return;
+        }
+
+        ISchematic schematic = future.getNow(null);
+
+        if (schematic == null)
+        {
+            this.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.invalid", ctx);
+            return;
+        }
+
+        PreviewRenderer renderer = PreviewCache.getRenderer(this.path, schematic);
+
+        if (renderer == null)
+        {
+            return;
+        }
+
+        if (this.cameraInitialized == false)
+        {
+            Vec3d center = renderer.getCenter();
+            this.targetX = center.x;
+            this.targetY = center.y;
+            this.targetZ = center.z;
+            this.distance = renderer.getDefaultDistance();
+            this.maxDistance = this.distance * 8.0;
+            this.yRot = (float) Configs.Preview.PREVIEW_ROTATION_Y.getDoubleValue();
+            this.xRot = (float) Configs.Preview.PREVIEW_ROTATION_X.getDoubleValue();
+            this.cameraInitialized = true;
+        }
+
+        renderer.tick();
+
+        this.drawSceneToFbo(width, height, renderer);
+        this.blitFbo(x, y, width, height, z);
+        this.renderOverlayButtons(x, y, ctx);
+    }
+
+    private void drawSceneToFbo(int width, int height, PreviewRenderer renderer)
+    {
+        int scale = new ScaledResolution(this.mc).getScaleFactor();
+        int texWidth = Math.max(1, width * scale);
+        int texHeight = Math.max(1, height * scale);
+
+        if (this.fbo == null || this.fboScale != scale || this.fbo.framebufferWidth != texWidth || this.fbo.framebufferHeight != texHeight)
+        {
+            if (this.fbo != null)
+            {
+                this.fbo.deleteFramebuffer();
+            }
+
+            this.fbo = new Framebuffer(texWidth, texHeight, true);
+            this.fboScale = scale;
+        }
+
+        this.fbo.bindFramebuffer(true);
+
+        renderer.draw(texWidth, texHeight, Configs.Preview.PREVIEW_FOV.getDoubleValue(), this.yRot, this.xRot, this.distance,
+                      this.targetX, this.targetY, this.targetZ, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue());
+
+        this.mc.getFramebuffer().bindFramebuffer(true);
+    }
+
+    private void blitFbo(int x, int y, int width, int height, float z)
+    {
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
+                                            GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.enableTexture2D();
+        GlStateManager.bindTexture(this.fbo.framebufferTexture);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
+        buffer.pos(x, y + height, z).tex(0.0, 0.0).endVertex();
+        buffer.pos(x + width, y + height, z).tex(1.0, 0.0).endVertex();
+        buffer.pos(x + width, y, z).tex(1.0, 1.0).endVertex();
+        buffer.pos(x, y, z).tex(0.0, 1.0).endVertex();
+        tessellator.draw();
+
+        GlStateManager.disableBlend();
+    }
+
+    private void renderOverlayButtons(int x, int y, ScreenContext ctx)
+    {
+        int barY = this.getY() + 2;
+        int freecamColor = this.freecam ? 0xFF3070FF : 0x80000000;
+
+        ShapeRenderUtils.renderRectangle(this.getFreecamButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, freecamColor);
+        ShapeRenderUtils.renderRectangle(this.getFullscreenButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, 0x80000000);
+        this.renderPlainString(this.getFreecamButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "C", ctx);
+        this.renderPlainString(this.getFullscreenButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "F", ctx);
+    }
+
+    private void renderPlaceholder(int x, int y, int width, int height, float z, String translationKey, ScreenContext ctx)
+    {
+        ShapeRenderUtils.renderRectangle(x, y, z, width, height, 0x80000000);
+        String text = StringUtils.translate(translationKey);
+        int textX = x + Math.max(0, (width - this.getStringWidth(text)) / 2);
+        int textY = y + Math.max(0, (height - this.getFontHeight()) / 2);
+        this.renderPlainString(textX, textY, z + 1f, 0xFFFFFFFF, true, text, ctx);
+    }
+
+    public void close()
+    {
+        if (this.fbo != null)
+        {
+            this.fbo.deleteFramebuffer();
+            this.fbo = null;
+        }
+    }
+}

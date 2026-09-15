@@ -23,6 +23,8 @@ repositories {
     flatDir {
         dirs 'libs'
     }
+    // Only for the SpecialSource tool dependency used by remapLitematica below.
+    mavenCentral()
 }
 
 apply plugin: 'net.minecraftforge.gradle.liteloader'
@@ -61,14 +63,54 @@ minecraft {
     replace "@MOD_VERSION@", mod_version
 }
 
+configurations {
+    specialSource
+}
+
+// Litematica's litemod is compiled by its author directly against raw notch-obfuscated
+// Minecraft (LiteLoader's normal dev workflow - no SRG stage), unlike a typical Forge-
+// ecosystem ":deobf" Maven artifact (which malilib publishes, so deobfCompile below works
+// for it unmodified). ForgeGradle's deobfCompile/TaskSingleDeobfBin assumes SRG-named input
+// and only remaps SRG -> MCP; it silently leaves vanilla type references notch-obfuscated in
+// Litematica's method signatures (e.g. ISchematicRegion.getPosition() would compile as
+// returning a class literally named "et" instead of BlockPos). Fix: remap the raw litemod
+// notch -> MCP ourselves with SpecialSource (the same tool FG uses internally for the
+// vanilla jar itself) and the notch-mcp.srg mapping FG already generates, then add the
+// result as a plain compile dependency instead of deobfCompile.
+ext.remapLitematicaOutput = file("$buildDir/remapped/litematica-liteloader-" + config.minecraft_version_out + "-" + config.litematica_version + ".jar")
+
 dependencies {
     deobfCompile "fi.dy.masa.malilib:malilib-liteloader-" + config.minecraft_version_out + ":" + config.malilib_version + ":deobf"
 
-    // Litematica LiteLoader is not published to a Maven repo. Drop the .litemod file in
-    // libs/ (see README "Building"), matched here by the flatDir repo above. A .litemod is
-    // a plain jar/zip under a different extension - tell the flatDir resolver about it.
-    deobfCompile name: "litematica-liteloader-" + config.minecraft_version_out + "-" + config.litematica_version, ext: "litemod"
+    specialSource "net.md-5:SpecialSource:1.8.3:shaded"
 }
+
+// Litematica LiteLoader is not published to a Maven repo. Drop the .litemod file in libs/
+// (see README "Building"); it is added to the compile classpath in the afterEvaluate block
+// below (as the SpecialSource-remapped jar, not deobfCompile - see remapLitematica above).
+
+task remapLitematica(type: JavaExec) {
+    dependsOn genSrgs
+
+    def mcpParts = config.mappings_version.tokenize('_') // "stable_39" -> ["stable", "39"]
+    def inputFile = file("libs/litematica-liteloader-" + config.minecraft_version_out + "-" + config.litematica_version + ".litemod")
+    def notchToMcpSrg = new File(gradle.gradleUserHomeDir,
+            "caches/minecraft/de/oceanlabs/mcp/mcp_${mcpParts[0]}/${mcpParts[1]}/${config.minecraft_version}/srgs/notch-mcp.srg")
+
+    inputs.file inputFile
+    outputs.file remapLitematicaOutput
+
+    doFirst {
+        remapLitematicaOutput.parentFile.mkdirs()
+    }
+
+    classpath = configurations.specialSource
+    main = 'net.md_5.specialsource.SpecialSource'
+    args = ['-i', inputFile.path, '-o', remapLitematicaOutput.path, '-m', notchToMcpSrg.path,
+            '--kill-lvt', '--kill-generics', '--kill-source']
+}
+
+compileJava.dependsOn remapLitematica
 
 sourceSets {
     main {
@@ -136,4 +178,14 @@ processResources
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+}
+
+// The LiteLoader plugin also puts the raw (still notch-obfuscated) litemod from libs/
+// directly on the compile classpath, ahead of our remapped jar - javac then resolves
+// Litematica's classes from that raw entry first. Runs in afterEvaluate so it applies
+// after the plugin's own classpath wiring, not before it.
+afterEvaluate {
+    sourceSets.main.compileClasspath = sourceSets.main.compileClasspath.filter {
+        it.name.endsWith('.litemod') == false
+    } + files(remapLitematicaOutput)
 }

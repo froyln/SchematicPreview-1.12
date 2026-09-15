@@ -37,6 +37,8 @@ schematicpreview.hotkeys.category.generic=SchematicPreview hotkeys
 
 schematicpreview.button.fullscreen=Fullscreen
 schematicpreview.button.freecam=Freecam
+schematicpreview.label.preview.loading=Loading...
+schematicpreview.label.preview.invalid=Invalid schematic
 schematicpreview.button.change_directory_icon=Right-click to change icon
 schematicpreview.gui.change_directory_icon=Item id for icon or empty to use default icon
 schematicpreview.gui.change_directory_icon.pos=Position: %s

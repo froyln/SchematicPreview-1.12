@@ -112,7 +112,7 @@ mod list of `runClient`.** Package `dev.froyln.schematicpreview`, mod id `schema
 
 ## Task: 3D preview renderer + side-panel preview
 
-**Status:** in progress
+**Status:** done (pending commit sha)
 
 The core feature: replace the static thumbnail in Litematica's schematic info panel with a
 live 3D render of the selected schematic. **Tessellation only on the client thread; every GL
@@ -156,13 +156,78 @@ resource freed when the screen closes; GL state restored after each draw.**
 
 - Load Schematics screen: selecting a `.litematic`, `.schematic`, `.schem` or `.nbt` file
   shows a rotating-able 3D preview; multi-region schematics render all regions at the right
-  offsets; translucent blocks (glass, water) render after solids.
-- Selecting a file with invalid contents shows a placeholder, no crash in the log.
+  offsets; translucent blocks (glass, water) render after solids. — **not verified in this
+  session**, see notes (same `runClient` network limitation as task 1).
+- Selecting a file with invalid contents shows a placeholder, no crash in the log. —
+  **not verified in-game**; code path exists (`PreviewCache` catches `Throwable` around
+  `SchematicType.tryCreateSchematicFrom`, resolves the future to `null`, `PreviewWidget`
+  renders an "Invalid schematic" placeholder instead of touching a renderer).
 - Opening/closing the screen 20 times does not grow VRAM (watch `Framebuffer`/VBO counts
-  via a debug log line, then remove the line).
-- `./gradlew build` exits 0.
+  via a debug log line, then remove the line). — **not verified in-game**.
+- `./gradlew build` exits 0 — **PASS**, see notes.
 
 ### Notes / findings
+
+- **Build verified programmatically:** `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` →
+  `BUILD SUCCESSFUL`. Unzipped `build/libs/schematicpreview-liteloader-1.12.2-0.1.0.litemod`
+  and confirmed all 6 new classes present, `mixins.schematicpreview.json` lists
+  `SchematicInfoWidgetMixin` in `client`, refmap exists (empty mappings, expected — every
+  mixin target is a non-obfuscated Litematica/MaLiLib class, `remap = false` throughout).
+- **`./gradlew runClient` could not be verified end-to-end**, same as task 1: this network's
+  connection to `resources.download.minecraft.net` returns HTTP 400 for most asset downloads
+  (`DownloadAssetsTask` stalls around 29%). Bounded the attempt and moved on rather than fight
+  a third-party CDN a second time. **Whoever picks up task 3 should run `./gradlew runClient`
+  once on a normal network** and confirm every acceptance item above.
+- **Real, project-wide build bug found and fixed, not anticipated in the design doc:**
+  `deobfCompile` does not deobfuscate Litematica's *referenced vanilla types* — only its own
+  class/method names (which were never obfuscated to begin with). Litematica's `.litemod` is
+  compiled directly against raw notch Minecraft (LiteLoader's normal workflow has no SRG
+  stage), but ForgeGradle's `deobfCompile`/`TaskSingleDeobfBin` is built for the Forge-
+  ecosystem case (third-party `:deobf` artifacts are already SRG-named) and only remaps
+  SRG → MCP. Fed raw notch input, it silently left things like
+  `ISchematicRegion.getPosition()` compiling as returning a class named `et` instead of
+  `BlockPos` — confirmed with `javap` on the resolved dependency jar. This didn't surface in
+  task 1 because nothing there called a Litematica method with a vanilla type in its
+  signature; task 2 is the first to touch `ISchematicRegion`/`ILitematicaBlockStateContainer`.
+  Fixed in `build.gradle` with a new `remapLitematica` task that runs `SpecialSource`
+  (`net.md-5:SpecialSource:1.8.3:shaded`, Maven Central — the exact tool FG uses internally to
+  deobfuscate the vanilla jar itself) against the raw litemod using FG's own generated
+  `notch-mcp.srg`, then forces the result onto the compile classpath via an `afterEvaluate`
+  block that also strips any raw `.litemod` file from `compileClasspath` (the LiteLoader
+  Gradle plugin puts the raw litemod there directly too, for `runClient`'s benefit, and it was
+  silently shadowing the fix — javac resolves each class from the first matching classpath
+  entry). Full writeup in `AGENTS.md` → Gotchas. **This was flagged before starting task 2 and
+  fixed with the user's explicit go-ahead** (it's outside task 2's original scope but blocks
+  tasks 2-5 entirely, since they all depend on Litematica schematic/GUI API surfaces with
+  vanilla-typed signatures).
+- **Design deviations from `docs/port-design.md` §4** (doc is prose/pseudocode, not verified
+  hook points like §3.1/§3.3 — see task 2's own port-design.md caveat): lightmap handling
+  doesn't set fixed `240,240` coordinates on the lightmap texture unit; it disables that
+  texture unit entirely during the block draw (every block already tessellates against the
+  constant `getCombinedLight` value from `SchematicBlockAccess`, so there is nothing
+  meaningful to sample — disabling the unit is simpler than binding/managing the real dynamic
+  lightmap texture and gives the same fully-lit result). VBO only, no display-list fallback
+  (LWJGL2/OpenGL 2.1, which 1.12.2 already requires, guarantees VBO support).
+- **Tile entity rendering is best-effort and unverified in-game.** `SchematicBlockAccess`
+  builds each `TileEntity` via `TileEntity.create(null, tag)` (confirmed real signature via
+  `javap` against the stable_39-mapped vanilla jar: `static TileEntity create(World,
+  NBTTagCompound)`) since there is no real `World` to pass; `PreviewRenderer` renders via
+  `TileEntityRendererDispatcher.instance.render(te, x, y, z, partialTicks)` wrapped in
+  `try/catch (Throwable)` per tile entity, blacklisting the class on failure so a bad renderer
+  doesn't retry every frame. Matches the `docs/port-design.md` §8 risk mitigation exactly, but
+  which TE renderers actually tolerate a null world is untested pending `runClient`.
+- **Reviewed with `/review` before marking this task done** (first review agent got cut off by
+  a session restart mid-run with no salvageable partial output; re-ran fresh). Found one
+  critical bug, fixed: `PreviewRenderer.drawLayer()` set up `glVertexPointer`/`glColorPointer`/
+  `glTexCoordPointer` and called `vbo.drawArrays()` without ever calling
+  `GlStateManager.glEnableClientState(...)` for `GL_VERTEX_ARRAY`/`GL_COLOR_ARRAY`/
+  `GL_TEXTURE_COORD_ARRAY` first — malilib's own `VboRenderObject.draw()` (which this was
+  modeled after) skips this too, but only because it always runs inside the constant world-
+  render loop where those states are already on; a GUI widget draw has no such guarantee. As
+  written this would have rendered a blank preview — exactly the class of bug the disclosed
+  `runClient` network gap would hide from manual testing. Fixed by enabling the three states
+  before the pointer setup. `./gradlew build` re-verified green after the fix (see above).
+  No other correctness, requirement-gap, or security findings.
 
 ---
 
