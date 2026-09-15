@@ -112,7 +112,7 @@ mod list of `runClient`.** Package `dev.froyln.schematicpreview`, mod id `schema
 
 ## Task: 3D preview renderer + side-panel preview
 
-**Status:** pending
+**Status:** in progress
 
 The core feature: replace the static thumbnail in Litematica's schematic info panel with a
 live 3D render of the selected schematic. **Tessellation only on the client thread; every GL
