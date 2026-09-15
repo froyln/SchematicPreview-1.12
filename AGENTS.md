@@ -210,6 +210,25 @@ This is a client-side mod with no network surface. Trust boundaries are files on
 
 ## Gotchas
 
+- **Never cast to an accessor-mixin interface directly inside another mixin's injected
+  method — it crashes at class-load time.** `./gradlew build`/`compileJava` don't catch this;
+  it only surfaces at runtime (found via `tools/test-in-game.sh`, not `./gradlew runClient`,
+  which this network can't reach far enough to hit it). Writing, e.g.,
+  `((BaseListWidgetAccessor) listWidget).schematicpreview$setAreEntriesFixedHeight(false)`
+  straight inside `BaseSchematicBrowserScreenMixin`'s `@Inject` method throws at game launch:
+  `InvalidMixinException: Resolution error: unable to find corresponding type for
+  dev/froyln/schematicpreview/mixin/BaseListWidgetAccessor in hierarchy of
+  fi/dy/masa/litematica/gui/BaseSchematicBrowserScreen` (fatal — `Mixin apply failed`, mod
+  never finishes loading). Root cause: the LiteLoader-bundled Mixin version (0.7.4) recognizes
+  `BaseListWidgetAccessor` as itself a registered `@Mixin` class from its own global registry,
+  and its descriptor-transform pass then tries to resolve that reference as a target-hierarchy
+  alias relative to whatever class is *currently* being transformed — which fails whenever the
+  two mixins target unrelated classes. Fix: never reference an accessor-mixin interface from
+  inside another mixin's own injected bytecode. Put the cast in a **plain, non-mixin** class
+  instead (here, `mixin/BrowserWidgetAccessors.java` — same package, but *not* listed in
+  `mixins.schematicpreview.json`) and have the mixin call that class's static method. Ordinary
+  code isn't bytecode-transformed by Mixin, so by the time it runs the accessor interface has
+  already been woven into its real target and a plain cast just works.
 - **`deobfCompile` does not deobfuscate Litematica's vanilla type references — use the
   `remapLitematica` task's output instead.** Litematica's `.litemod` is compiled by its author
   directly against raw notch-obfuscated Minecraft (LiteLoader's normal dev workflow has no SRG

@@ -40,11 +40,11 @@ public abstract class BaseSchematicBrowserScreenMixin
     private void schematicpreview$installPreviewEntries(CallbackInfoReturnable<BaseFileBrowserWidget> cir)
     {
         BaseFileBrowserWidget listWidget = cir.getReturnValue();
-        ((BaseListWidgetAccessor) listWidget).schematicpreview$setAreEntriesFixedHeight(false);
+        BrowserWidgetAccessors.setAreEntriesFixedHeight(listWidget, false);
 
         this.schematicpreview$applyPreviewType(listWidget);
 
-        DirectoryNavigationWidget nav = ((BaseFileBrowserWidgetAccessor) listWidget).schematicpreview$getNavigationWidget();
+        DirectoryNavigationWidget nav = BrowserWidgetAccessors.getNavigationWidget(listWidget);
         GenericButton button = new GenericButton(BUTTON_SIZE, BUTTON_SIZE);
         button.translateAndAddHoverString("schematicpreview.button.preview_type");
         button.setActionListener((mouseButton, widget) -> {
