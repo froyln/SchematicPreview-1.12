@@ -9,6 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import javax.annotation.Nullable;
 
+import org.lwjgl.opengl.GL11;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.math.Vec3d;
@@ -127,6 +129,7 @@ public final class PreviewCache
             }
 
             smallFbo = new Framebuffer(newWidth, newHeight, true);
+            smallFbo.setFramebufferFilter(GL11.GL_NEAREST);
         }
 
         smallFbo.bindFramebuffer(true);

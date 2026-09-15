@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
+import org.lwjgl.opengl.GL11;
+
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.math.MathHelper;
@@ -250,6 +252,7 @@ public class PreviewWidget extends InteractableWidget
             }
 
             this.fbo = new Framebuffer(texWidth, texHeight, true);
+            this.fbo.setFramebufferFilter(GL11.GL_NEAREST);
             this.fboScale = scale;
         }
 
