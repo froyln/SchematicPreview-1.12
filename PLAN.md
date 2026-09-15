@@ -233,7 +233,7 @@ resource freed when the screen closes; GL state restored after each draw.**
 
 ## Task: Browser entry types (list preview + tile grid) and preview-type button
 
-**Status:** in progress
+**Status:** done (`8b1650c`)
 
 Per-entry previews and multi-column tile layouts in the schematic browser, cycled by a small
 button next to the directory navigation bar (left click forward, right click backward).
@@ -269,10 +269,52 @@ button next to the directory navigation bar (left click forward, right click bac
 
 - All five types render correctly in Load Schematics, Schematic Manager and the Save screens;
   scrolling reaches the last row in tile mode; search filtering still works; double-click on a
-  directory still navigates.
-- `./gradlew build` exits 0.
+  directory still navigates. — **not verified in-game**, same `runClient` network limitation as
+  tasks 1-2. Note: real behavior is single-click-to-navigate (confirmed in
+  `DirectoryEntryWidget.onMouseClicked`), not double-click as originally worded above; unchanged
+  by this task either way.
+- `./gradlew build` exits 0 — **PASS**, see notes.
 
 ### Notes / findings
+
+- **Build verified programmatically**, twice (once before, once after a `/review`-caught fix —
+  see below): `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` → `BUILD SUCCESSFUL`.
+  Confirmed all new classes packaged and `mixins.schematicpreview.json` lists
+  `BaseSchematicBrowserScreenMixin`, `BaseFileBrowserWidgetAccessor`, `BaseListWidgetAccessor`
+  alongside task 2's `SchematicInfoWidgetMixin`.
+- **`./gradlew runClient` still not verified end-to-end** — same asset-CDN network limitation
+  as tasks 1-2 (bounded retry, same HTTP 400s from `resources.download.minecraft.net`).
+  **Whoever picks up task 4 should run `./gradlew runClient` once on a normal network** and
+  confirm every acceptance item above, plus the two accepted gaps noted below.
+- **No multi-column list layout exists anywhere in malilib** (confirmed by reading the real
+  0.53.0 sources, extracted from the Gradle-cached sources jar since the `/tmp/ref` clones from
+  earlier sessions were gone after a sandbox restart) — `TileEntryWidgetFactory` is a
+  from-scratch `ListEntryWidgetFactory`, not an extension of anything. It can't call
+  `BaseListWidget.createListEntryWidget` (protected, different package) so it's handed the same
+  `DataListEntryWidgetFactory` lambda the widget's own default single-column path uses, and
+  calls it directly with a manually-built `DataListEntryWidgetData`.
+- **`/review` caught a real security-invariant violation, fixed**: the first pass set
+  `showPreview` purely from `previewType.hasPreview()` and unconditionally nulled the file-type
+  icon, meaning list/tile row previews ignored `Configs.Preview.PREVIEW_MAX_VOLUME` entirely —
+  directly contradicting AGENTS.md's Security invariants ("previewMaxVolume gates list/tile
+  previews") and this task's own step 2. Fixed by restructuring the fallback: the vanilla
+  type icon is no longer cleared in the constructor; `PreviewCache.renderSmallPreview` now
+  returns `false` (drawing nothing, leaving the icon visible underneath) whenever the schematic
+  is still loading, failed to parse, **or exceeds `previewMaxVolume`** (checked via
+  `schematic.getMetadata().getTotalVolume()`), and only draws over the icon once a preview is
+  actually going to render. `./gradlew build` re-verified green after the fix.
+- **Accepted, out-of-scope gaps** (both noted to the user before implementation, per the
+  approved plan):
+  - `BaseListWidget.updateScrollBarHeight()`'s per-widget-height branch indexes the flat
+    entry-widget list by row number once tile mode has more than one row — this only affects
+    the scrollbar thumb's rendered *size* (cosmetic); the actual scroll range comes from
+    `clampScrollBarPosition()`, which correctly uses `TileEntryWidgetFactory`'s row-based
+    `getTotalListWidgetCount()` independently, so scrolling itself is unaffected.
+  - The preview-type button's position is computed once, right after the list widget is
+    constructed, and won't track a live in-session game-window resize.
+  - Directory rows/tiles never show a preview in this task (matches the existing split in
+    AGENTS.md → Architecture: "directories with no custom icon show a small preview of their
+    first schematic file" is task 4's job).
 
 ---
 
@@ -390,6 +432,13 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   Gotchas). `./gradlew build` verified green (twice — once after a `/review`-caught missing
   `glEnableClientState` bug was fixed); `runClient` in-game check still needed on a normal
   network (same asset-CDN limitation as task 1).
+- Browser entry types (list preview + tile grid) and preview-type button — done (`8b1650c`),
+  `PreviewDirectoryEntryWidget` + from-scratch `TileEntryWidgetFactory` (malilib has no
+  multi-column list layout to extend) wired via `BaseSchematicBrowserScreenMixin` +
+  `BaseFileBrowserWidgetAccessor`/`BaseListWidgetAccessor`; row/tile previews render through a
+  new shared FBO in `PreviewCache` rather than one per entry. `./gradlew build` verified green
+  (twice — once after a `/review`-caught missing `previewMaxVolume` gate was fixed); `runClient`
+  in-game check still needed on a normal network (same limitation as tasks 1-2).
 
 ## Dropped / deferred
 
