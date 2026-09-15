@@ -269,23 +269,39 @@ button next to the directory navigation bar (left click forward, right click bac
 
 - All five types render correctly in Load Schematics, Schematic Manager and the Save screens;
   scrolling reaches the last row in tile mode; search filtering still works; double-click on a
-  directory still navigates. — **not verified in-game**, same `runClient` network limitation as
-  tasks 1-2. Note: real behavior is single-click-to-navigate (confirmed in
+  directory still navigates. — **mod now loads in-game without crashing (see notes); the actual
+  click-through checks (all 5 types, scrolling, search) still need a human at the keyboard**.
+  Note: real behavior is single-click-to-navigate (confirmed in
   `DirectoryEntryWidget.onMouseClicked`), not double-click as originally worded above; unchanged
   by this task either way.
 - `./gradlew build` exits 0 — **PASS**, see notes.
 
 ### Notes / findings
 
-- **Build verified programmatically**, twice (once before, once after a `/review`-caught fix —
-  see below): `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` → `BUILD SUCCESSFUL`.
-  Confirmed all new classes packaged and `mixins.schematicpreview.json` lists
+- **Build verified programmatically**, three times (once before `/review`, once after its
+  `previewMaxVolume` finding was fixed, once after a real in-game crash was found and fixed —
+  both below): `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` → `BUILD SUCCESSFUL` each
+  time. Confirmed all new classes packaged and `mixins.schematicpreview.json` lists
   `BaseSchematicBrowserScreenMixin`, `BaseFileBrowserWidgetAccessor`, `BaseListWidgetAccessor`
   alongside task 2's `SchematicInfoWidgetMixin`.
-- **`./gradlew runClient` still not verified end-to-end** — same asset-CDN network limitation
-  as tasks 1-2 (bounded retry, same HTTP 400s from `resources.download.minecraft.net`).
-  **Whoever picks up task 4 should run `./gradlew runClient` once on a normal network** and
-  confirm every acceptance item above, plus the two accepted gaps noted below.
+- **New: `tools/test-in-game.sh`, a real in-game test path that isn't blocked by this
+  network's `runClient` asset-download problem** — installs the built litemod into an existing,
+  already-set-up PrismLauncher instance (`~/.local/share/PrismLauncher/instances/1.12.2 test
+  ai`) and launches it directly. Using it caught a real crash `./gradlew build` could not:
+  `BaseSchematicBrowserScreenMixin` casting straight to `BaseListWidgetAccessor`/
+  `BaseFileBrowserWidgetAccessor` inside its own injected method compiled fine but threw
+  `InvalidMixinException` at game launch (the bundled Mixin 0.7.4 mistakes the accessor
+  interface for a target-hierarchy alias when it's itself a registered mixin) — fatal, the mod
+  never finished loading. Fixed by moving those two casts into a new plain (non-mixin)
+  `BrowserWidgetAccessors` helper; full story in `AGENTS.md` → Gotchas. **Confirmed working
+  after the fix**: relaunched via `tools/test-in-game.sh`, log shows `Successfully added mod
+  SchematicPreview version 0.1.0` and normal `Initialising mod SchematicPreview` with no
+  `Mixin apply failed`/`FATAL` anywhere in `latest.log`, process stayed up. This only proves
+  the mod *loads* — the acceptance items themselves (5 preview types, scrolling, search) still
+  need someone to actually open Load Schematics and look, which needs a human at the keyboard
+  (or an agent with display/input access) rather than log-watching.
+- **Whoever picks up task 4**: run `tools/test-in-game.sh` (or `./gradlew runClient` on a
+  normal network) and confirm every acceptance item above, plus the accepted gaps noted below.
 - **No multi-column list layout exists anywhere in malilib** (confirmed by reading the real
   0.53.0 sources, extracted from the Gradle-cached sources jar since the `/tmp/ref` clones from
   earlier sessions were gone after a sandbox restart) — `TileEntryWidgetFactory` is a
