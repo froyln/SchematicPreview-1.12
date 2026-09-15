@@ -226,6 +226,12 @@ public class PreviewRenderer
             return;
         }
 
+        // glVertexPointer/glColorPointer/glTexCoordPointer interpret their last argument as a
+        // byte offset into the currently-bound GL_ARRAY_BUFFER, not a client-side pointer, so
+        // the VBO must be bound *before* the pointer setup - not after (confirmed the hard way:
+        // LWJGL throws "Cannot use offsets when Array Buffer Object is disabled" otherwise).
+        vbo.bindBuffer();
+
         // The legacy client-side array states aren't guaranteed on in this GUI context
         // (unlike the constant world-render loop malilib's own VBO helpers assume) - enable
         // them ourselves before pointer setup, matching WorldVertexBufferUploader's own draws.
@@ -239,7 +245,6 @@ public class PreviewRenderer
         GlStateManager.glTexCoordPointer(2, GL11.GL_SHORT, 28, 24);
         OpenGlHelper.setClientActiveTexture(OpenGlHelper.defaultTexUnit);
 
-        vbo.bindBuffer();
         vbo.drawArrays(GL11.GL_QUADS);
         OpenGlHelper.glBindBuffer(OpenGlHelper.GL_ARRAY_BUFFER, 0);
     }

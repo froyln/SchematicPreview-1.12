@@ -228,6 +228,21 @@ resource freed when the screen closes; GL state restored after each draw.**
   `runClient` network gap would hide from manual testing. Fixed by enabling the three states
   before the pointer setup. `./gradlew build` re-verified green after the fix (see above).
   No other correctness, requirement-gap, or security findings.
+- **Real in-game crash found in task 3's testing, root cause lives here**: the `/review` fix
+  above added the three `glEnableClientState` calls in the wrong place relative to
+  `vbo.bindBuffer()` — `drawLayer()` called `glVertexPointer`/`glColorPointer`/
+  `glTexCoordPointer` (which interpret their last argument as a byte offset into the
+  *currently bound* `GL_ARRAY_BUFFER`, not a client-side pointer) *before* binding the VBO.
+  Selecting any schematic in the browser (side panel preview, task 2) or showing a
+  `LIST_PREVIEW`/tile row (task 3) both call this same method, and both crashed the game:
+  `org.lwjgl.opengl.OpenGLException: Cannot use offsets when Array Buffer Object is disabled`.
+  Reported directly by the user running the built litemod via `tools/test-in-game.sh`, with
+  the full crash log pinpointing `PreviewRenderer.java:233`. Fixed by moving
+  `vbo.bindBuffer()` to before the pointer setup, matching the established
+  `VboRenderListSchematic.renderBlocks` pattern in the Litematica reference source (bind
+  first, then set up pointers, then draw) that this code was supposed to mirror but didn't
+  quite. `./gradlew build` re-verified green; confirmed clean relaunch with no crash in
+  `latest.log` via `tools/test-in-game.sh` — **user should retry selecting a schematic now**.
 
 ---
 

@@ -305,6 +305,15 @@ This is a client-side mod with no network surface. Trust boundaries are files on
 - `BlockRendererDispatcher.renderBlock` reads `IBlockAccess.getBlockState` for neighbors —
   `SchematicBlockAccess` must return `AIR` outside the region, not throw.
 - `Framebuffer` in 1.12 allocates a depth texture only if `useDepth` is true — pass `true`.
+- **Bind a `VertexBuffer` before `glVertexPointer`/`glColorPointer`/`glTexCoordPointer`, never
+  after.** Those calls interpret their last argument as a byte offset into the *currently
+  bound* `GL_ARRAY_BUFFER`, not a client-side pointer; calling them with no buffer bound throws
+  `OpenGLException: Cannot use offsets when Array Buffer Object is disabled` — a runtime-only
+  crash, invisible to `./gradlew build`/`compileJava` and only hit once something actually
+  renders (found via `tools/test-in-game.sh`, not `runClient`). `PreviewRenderer.drawLayer()`
+  had this backwards once already; the correct order is `vbo.bindBuffer()` →
+  `glEnableClientState`/pointer setup → `vbo.drawArrays(...)`, matching
+  `VboRenderListSchematic.renderBlocks` in the Litematica reference source.
 - `Minecraft.getFramebuffer().bindFramebuffer(true)` must be called after rendering to the
   preview FBO, otherwise the rest of the GUI draws into the preview.
 - `en_us.lang` (properties style) — 1.12 does not read `.json` lang files.
