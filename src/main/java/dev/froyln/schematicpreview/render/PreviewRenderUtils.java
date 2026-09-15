@@ -26,13 +26,24 @@ public final class PreviewRenderUtils
     }
 
     /**
-     * Blits {@code fbo}'s color texture at {@code (x, y, width, height)}. {@code width}/
-     * {@code height} are also the pixel dimensions the scene was just rendered at inside the
-     * FBO (its own viewport) - which may be smaller than the FBO's actual texture size for a
-     * shared, grow-only FBO (see {@code PreviewCache}), so the UV range is derived from that
-     * ratio rather than assumed to be the full 0..1 texture.
+     * Blits the full extent of {@code fbo}'s color texture at {@code (x, y, width, height)} -
+     * for an FBO sized exactly to what was just rendered into it (e.g. {@code PreviewWidget}'s
+     * own dedicated FBO, recreated whenever its pixel size changes), so the whole texture maps
+     * 1:1 onto the destination rect regardless of GUI scale.
      */
     public static void blitFramebuffer(Framebuffer fbo, int x, int y, int width, int height, float z)
+    {
+        blitFramebuffer(fbo, x, y, width, height, fbo.framebufferWidth, fbo.framebufferHeight, z);
+    }
+
+    /**
+     * Blits {@code fbo}'s color texture at {@code (x, y, width, height)}, sampling only the
+     * {@code (usedWidth, usedHeight)} sub-rectangle of it that the scene was actually rendered
+     * into - for a shared, grow-only FBO (see {@code PreviewCache}) that can be larger than the
+     * current viewport, so the UV range must be derived from that ratio instead of assuming the
+     * full 0..1 texture is filled.
+     */
+    public static void blitFramebuffer(Framebuffer fbo, int x, int y, int width, int height, int usedWidth, int usedHeight, float z)
     {
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
@@ -41,8 +52,8 @@ public final class PreviewRenderUtils
         GlStateManager.enableTexture2D();
         GlStateManager.bindTexture(fbo.framebufferTexture);
 
-        double maxU = width / (double) fbo.framebufferWidth;
-        double maxV = height / (double) fbo.framebufferHeight;
+        double maxU = usedWidth / (double) fbo.framebufferWidth;
+        double maxV = usedHeight / (double) fbo.framebufferHeight;
 
         Tessellator tessellator = Tessellator.getInstance();
         BufferBuilder buffer = tessellator.getBuffer();

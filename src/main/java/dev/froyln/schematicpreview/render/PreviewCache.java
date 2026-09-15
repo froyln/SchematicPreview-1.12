@@ -142,7 +142,7 @@ public final class PreviewCache
 
         Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(true);
 
-        PreviewRenderUtils.blitFramebuffer(smallFbo, x, y, width, height, z);
+        PreviewRenderUtils.blitFramebuffer(smallFbo, x, y, width, height, width, height, z);
 
         return true;
     }
