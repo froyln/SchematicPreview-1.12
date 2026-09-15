@@ -287,19 +287,27 @@ button next to the directory navigation bar (left click forward, right click bac
 - **New: `tools/test-in-game.sh`, a real in-game test path that isn't blocked by this
   network's `runClient` asset-download problem** — installs the built litemod into an existing,
   already-set-up PrismLauncher instance (`~/.local/share/PrismLauncher/instances/1.12.2 test
-  ai`) and launches it directly. Using it caught a real crash `./gradlew build` could not:
-  `BaseSchematicBrowserScreenMixin` casting straight to `BaseListWidgetAccessor`/
-  `BaseFileBrowserWidgetAccessor` inside its own injected method compiled fine but threw
-  `InvalidMixinException` at game launch (the bundled Mixin 0.7.4 mistakes the accessor
-  interface for a target-hierarchy alias when it's itself a registered mixin) — fatal, the mod
-  never finished loading. Fixed by moving those two casts into a new plain (non-mixin)
-  `BrowserWidgetAccessors` helper; full story in `AGENTS.md` → Gotchas. **Confirmed working
-  after the fix**: relaunched via `tools/test-in-game.sh`, log shows `Successfully added mod
-  SchematicPreview version 0.1.0` and normal `Initialising mod SchematicPreview` with no
-  `Mixin apply failed`/`FATAL` anywhere in `latest.log`, process stayed up. This only proves
-  the mod *loads* — the acceptance items themselves (5 preview types, scrolling, search) still
-  need someone to actually open Load Schematics and look, which needs a human at the keyboard
-  (or an agent with display/input access) rather than log-watching.
+  ai`) and launches it directly. Using it caught two real crashes `./gradlew build` could not,
+  in two rounds (full story in `AGENTS.md` → Gotchas):
+  1. `BaseSchematicBrowserScreenMixin` casting straight to `BaseListWidgetAccessor`/
+     `BaseFileBrowserWidgetAccessor` inside its own injected method compiled fine but threw
+     `InvalidMixinException` at **mod load** (the bundled Mixin 0.7.4 mistakes the accessor
+     interface for a target-hierarchy alias when it's itself a registered mixin) — fatal, the
+     mod never finished loading.
+  2. The first fix (move the casts into a plain `mixin/BrowserWidgetAccessors` helper) loaded
+     fine but crashed the moment the **user actually opened the Load Schematics screen**
+     in-game (reported directly by the user, with the full crash log):
+     `NoClassDefFoundError: ... BrowserWidgetAccessors is a mixin class and cannot be
+     referenced directly` — the whole `dev.froyln.schematicpreview.mixin` package is Mixin's
+     declared root package, so *anything* placed in it is excluded from normal classloading,
+     not just `@Mixin`-annotated classes. Real fix: moved the helper to
+     `gui/BrowserWidgetAccessors.java`, outside the mixin package entirely.
+  **Confirmed working after both fixes**: relaunched via `tools/test-in-game.sh`, log shows
+  `Successfully added mod SchematicPreview version 0.1.0`, clean boot to
+  `Sound engine started` with zero `FATAL`/`Mixin apply failed`/`NoClassDefFoundError` lines,
+  process stayed up. This proves the mod *loads*; the acceptance items themselves (5 preview
+  types, scrolling, search) still need someone to actually open Load Schematics and look —
+  **the user should retry that now that round 2 is fixed**.
 - **Whoever picks up task 4**: run `tools/test-in-game.sh` (or `./gradlew runClient` on a
   normal network) and confirm every acceptance item above, plus the accepted gaps noted below.
 - **No multi-column list layout exists anywhere in malilib** (confirmed by reading the real

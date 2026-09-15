@@ -223,25 +223,35 @@ This is a client-side mod with no network surface. Trust boundaries are files on
 
 ## Gotchas
 
-- **Never cast to an accessor-mixin interface directly inside another mixin's injected
-  method — it crashes at class-load time.** `./gradlew build`/`compileJava` don't catch this;
-  it only surfaces at runtime (found via `tools/test-in-game.sh`, not `./gradlew runClient`,
-  which this network can't reach far enough to hit it). Writing, e.g.,
-  `((BaseListWidgetAccessor) listWidget).schematicpreview$setAreEntriesFixedHeight(false)`
-  straight inside `BaseSchematicBrowserScreenMixin`'s `@Inject` method throws at game launch:
-  `InvalidMixinException: Resolution error: unable to find corresponding type for
-  dev/froyln/schematicpreview/mixin/BaseListWidgetAccessor in hierarchy of
-  fi/dy/masa/litematica/gui/BaseSchematicBrowserScreen` (fatal — `Mixin apply failed`, mod
-  never finishes loading). Root cause: the LiteLoader-bundled Mixin version (0.7.4) recognizes
-  `BaseListWidgetAccessor` as itself a registered `@Mixin` class from its own global registry,
-  and its descriptor-transform pass then tries to resolve that reference as a target-hierarchy
-  alias relative to whatever class is *currently* being transformed — which fails whenever the
-  two mixins target unrelated classes. Fix: never reference an accessor-mixin interface from
-  inside another mixin's own injected bytecode. Put the cast in a **plain, non-mixin** class
-  instead (here, `mixin/BrowserWidgetAccessors.java` — same package, but *not* listed in
-  `mixins.schematicpreview.json`) and have the mixin call that class's static method. Ordinary
-  code isn't bytecode-transformed by Mixin, so by the time it runs the accessor interface has
-  already been woven into its real target and a plain cast just works.
+- **Casting to an accessor-mixin interface has two separate failure modes — the fix needs a
+  plain class *outside* the whole `mixin` package, not just outside the `@Mixin` class.**
+  `./gradlew build`/`compileJava` catch neither; both only surfaced at runtime via
+  `tools/test-in-game.sh` (`./gradlew runClient` on this network never gets far enough to hit
+  either). Found in two rounds against the real game:
+  1. Casting `((BaseListWidgetAccessor) listWidget)...` straight inside
+     `BaseSchematicBrowserScreenMixin`'s own `@Inject` method throws at game launch:
+     `InvalidMixinException: Resolution error: unable to find corresponding type for
+     dev/froyln/schematicpreview/mixin/BaseListWidgetAccessor in hierarchy of
+     fi/dy/masa/litematica/gui/BaseSchematicBrowserScreen` (fatal, mod never finishes loading).
+     The LiteLoader-bundled Mixin (0.7.4) recognizes `BaseListWidgetAccessor` as itself a
+     registered `@Mixin` from its own global registry, and its descriptor-transform pass tries
+     to resolve that reference as a target-hierarchy alias relative to whatever class is
+     *currently* being transformed — which fails whenever the two mixins target unrelated
+     classes.
+  2. The obvious fix — move the cast into a plain helper class, `BrowserWidgetAccessors` —
+     crashed differently the moment the affected screen was actually opened in-game (not at
+     mod load; `compileJava`/`build` still both pass):
+     `NoClassDefFoundError: dev/froyln/schematicpreview/mixin/BrowserWidgetAccessors is a mixin
+     class and cannot be referenced directly`, even though that class has no `@Mixin`
+     annotation at all. Cause: `mixins.schematicpreview.json`'s `"package"` value marks the
+     *entire* `dev.froyln.schematicpreview.mixin` package as Mixin's root package, and Mixin
+     excludes every class under it from normal classloading — not just the ones actually listed
+     in `client[]`.
+  Fix that actually works: put the plain helper class **outside the mixin package entirely**
+  (`gui/BrowserWidgetAccessors.java`, not `mixin/BrowserWidgetAccessors.java`) and have the
+  mixin call its static methods. The `mixin` package is reserved for classes Mixin itself
+  processes (`@Mixin`-annotated targets and accessors) — nothing else can live there, even a
+  class with no Mixin annotations, if anything needs to reference it normally afterward.
 - **`deobfCompile` does not deobfuscate Litematica's vanilla type references — use the
   `remapLitematica` task's output instead.** Litematica's `.litemod` is compiled by its author
   directly against raw notch-obfuscated Minecraft (LiteLoader's normal dev workflow has no SRG

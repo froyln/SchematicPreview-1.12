@@ -18,6 +18,7 @@ import fi.dy.masa.malilib.gui.widget.list.header.DirectoryNavigationWidget;
 
 import dev.froyln.schematicpreview.config.Configs;
 import dev.froyln.schematicpreview.config.PreviewType;
+import dev.froyln.schematicpreview.gui.BrowserWidgetAccessors;
 import dev.froyln.schematicpreview.gui.PreviewDirectoryEntryWidget;
 import dev.froyln.schematicpreview.gui.TileEntryWidgetFactory;
 
