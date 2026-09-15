@@ -112,7 +112,7 @@ mod list of `runClient`.** Package `dev.froyln.schematicpreview`, mod id `schema
 
 ## Task: 3D preview renderer + side-panel preview
 
-**Status:** done (pending commit sha)
+**Status:** done (`0c12309`)
 
 The core feature: replace the static thumbnail in Litematica's schematic info panel with a
 live 3D render of the selected schematic. **Tessellation only on the client thread; every GL
@@ -383,6 +383,13 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   LiteMod entry, malilib configs (Generic/Menu/Preview) + hotkey + config screen, empty tick
   handler. `./gradlew build` verified from a clean tree; `runClient` in-game check still
   needed on a normal network (see task notes above).
+- 3D preview renderer + side-panel preview — done (`0c12309`), live rotatable 3D schematic
+  preview replacing the static thumbnail: `SchematicBlockAccess`/`PreviewRenderer`/
+  `PreviewCache`/`PreviewWidget`/`PreviewFullscreenScreen` + `SchematicInfoWidgetMixin`. Also
+  fixed a real ForgeGradle deobfuscation gap for the litematica dependency (see AGENTS.md →
+  Gotchas). `./gradlew build` verified green (twice — once after a `/review`-caught missing
+  `glEnableClientState` bug was fixed); `runClient` in-game check still needed on a normal
+  network (same asset-CDN limitation as task 1).
 
 ## Dropped / deferred
 
