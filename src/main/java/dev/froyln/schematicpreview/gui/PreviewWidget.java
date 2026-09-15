@@ -4,14 +4,7 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
-import org.lwjgl.opengl.GL11;
-
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -20,11 +13,11 @@ import fi.dy.masa.malilib.gui.BaseScreen;
 import fi.dy.masa.malilib.gui.util.ScreenContext;
 import fi.dy.masa.malilib.gui.widget.InteractableWidget;
 import fi.dy.masa.malilib.render.ShapeRenderUtils;
-import fi.dy.masa.malilib.util.StringUtils;
 
 import dev.froyln.schematicpreview.config.Configs;
 import dev.froyln.schematicpreview.render.PreviewCache;
 import dev.froyln.schematicpreview.render.PreviewRenderer;
+import dev.froyln.schematicpreview.render.PreviewRenderUtils;
 import fi.dy.masa.litematica.schematic.ISchematic;
 
 /**
@@ -204,7 +197,7 @@ public class PreviewWidget extends InteractableWidget
 
         if (future.isDone() == false)
         {
-            this.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.loading", ctx);
+            PreviewRenderUtils.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.loading", ctx);
             return;
         }
 
@@ -212,7 +205,7 @@ public class PreviewWidget extends InteractableWidget
 
         if (schematic == null)
         {
-            this.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.invalid", ctx);
+            PreviewRenderUtils.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.invalid", ctx);
             return;
         }
 
@@ -239,7 +232,7 @@ public class PreviewWidget extends InteractableWidget
         renderer.tick();
 
         this.drawSceneToFbo(width, height, renderer);
-        this.blitFbo(x, y, width, height, z);
+        PreviewRenderUtils.blitFramebuffer(this.fbo, x, y, width, height, z);
         this.renderOverlayButtons(x, y, ctx);
     }
 
@@ -268,27 +261,6 @@ public class PreviewWidget extends InteractableWidget
         this.mc.getFramebuffer().bindFramebuffer(true);
     }
 
-    private void blitFbo(int x, int y, int width, int height, float z)
-    {
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                                            GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-        GlStateManager.color(1f, 1f, 1f, 1f);
-        GlStateManager.enableTexture2D();
-        GlStateManager.bindTexture(this.fbo.framebufferTexture);
-
-        Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
-        buffer.pos(x, y + height, z).tex(0.0, 0.0).endVertex();
-        buffer.pos(x + width, y + height, z).tex(1.0, 0.0).endVertex();
-        buffer.pos(x + width, y, z).tex(1.0, 1.0).endVertex();
-        buffer.pos(x, y, z).tex(0.0, 1.0).endVertex();
-        tessellator.draw();
-
-        GlStateManager.disableBlend();
-    }
-
     private void renderOverlayButtons(int x, int y, ScreenContext ctx)
     {
         int barY = this.getY() + 2;
@@ -298,15 +270,6 @@ public class PreviewWidget extends InteractableWidget
         ShapeRenderUtils.renderRectangle(this.getFullscreenButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, 0x80000000);
         this.renderPlainString(this.getFreecamButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "C", ctx);
         this.renderPlainString(this.getFullscreenButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "F", ctx);
-    }
-
-    private void renderPlaceholder(int x, int y, int width, int height, float z, String translationKey, ScreenContext ctx)
-    {
-        ShapeRenderUtils.renderRectangle(x, y, z, width, height, 0x80000000);
-        String text = StringUtils.translate(translationKey);
-        int textX = x + Math.max(0, (width - this.getStringWidth(text)) / 2);
-        int textY = y + Math.max(0, (height - this.getFontHeight()) / 2);
-        this.renderPlainString(textX, textY, z + 1f, 0xFFFFFFFF, true, text, ctx);
     }
 
     public void close()

@@ -5,7 +5,10 @@
 	"refmap": "mixins.schematicpreview.refmap.json",
 	"minVersion": "0.7",
 	"client": [
-		"SchematicInfoWidgetMixin"
+		"SchematicInfoWidgetMixin",
+		"BaseSchematicBrowserScreenMixin",
+		"BaseFileBrowserWidgetAccessor",
+		"BaseListWidgetAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

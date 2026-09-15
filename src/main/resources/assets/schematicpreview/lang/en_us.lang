@@ -37,6 +37,7 @@ schematicpreview.hotkeys.category.generic=SchematicPreview hotkeys
 
 schematicpreview.button.fullscreen=Fullscreen
 schematicpreview.button.freecam=Freecam
+schematicpreview.button.preview_type=Change preview type
 schematicpreview.label.preview.loading=Loading...
 schematicpreview.label.preview.invalid=Invalid schematic
 schematicpreview.button.change_directory_icon=Right-click to change icon
