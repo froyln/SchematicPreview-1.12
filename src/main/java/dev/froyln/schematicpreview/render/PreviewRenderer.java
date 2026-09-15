@@ -159,8 +159,11 @@ public class PreviewRenderer
         Vec3i size = this.access.getBoxSize();
         double diagonal = Math.sqrt(size.getX() * (double) size.getX() + size.getY() * (double) size.getY() + size.getZ() * (double) size.getZ());
 
+        // Opaque, not alpha 0: this FBO is blitted with blending on (see PreviewRenderUtils),
+        // so a transparent clear let whatever was already on screen behind the widget - the
+        // live game world, for this GUI - show through anywhere the schematic doesn't cover.
         GlStateManager.viewport(0, 0, width, height);
-        GlStateManager.clearColor(0f, 0f, 0f, 0f);
+        GlStateManager.clearColor(0.05f, 0.05f, 0.05f, 1f);
         GlStateManager.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
         GlStateManager.matrixMode(GL11.GL_PROJECTION);

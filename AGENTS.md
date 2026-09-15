@@ -316,6 +316,13 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   `VboRenderListSchematic.renderBlocks` in the Litematica reference source.
 - `Minecraft.getFramebuffer().bindFramebuffer(true)` must be called after rendering to the
   preview FBO, otherwise the rest of the GUI draws into the preview.
+- **Clear the preview FBO to an opaque color, not alpha 0.** The blit in
+  `PreviewRenderUtils.blitFramebuffer` has blending on, so wherever the FBO's alpha is 0 (no
+  schematic geometry covering that pixel) the blit lets whatever was already drawn to the
+  screen behind the widget show through instead — for this GUI, that's the live game world,
+  not the widget's own background. Looked exactly like a badly broken camera (dark, oversized,
+  out-of-place geometry filling most of the widget) until traced to this; the actual schematic
+  render was fine the whole time. `PreviewRenderer.draw()` clears to opaque dark gray now.
 - `en_us.lang` (properties style) — 1.12 does not read `.json` lang files.
 - Litematica's browser remembers directory per `browserContext`; our entry widget must keep
   using `BaseFileBrowserWidget.DirectoryEntry.getFullPath()` and not cache paths across

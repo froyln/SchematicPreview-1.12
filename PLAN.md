@@ -243,6 +243,21 @@ resource freed when the screen closes; GL state restored after each draw.**
   first, then set up pointers, then draw) that this code was supposed to mirror but didn't
   quite. `./gradlew build` re-verified green; confirmed clean relaunch with no crash in
   `latest.log` via `tools/test-in-game.sh` — **user should retry selecting a schematic now**.
+- **"Bad quality" / "always wrong zoom and position" (user-reported after the fix above got
+  the preview rendering at all): root cause was FBO transparency, not the camera.**
+  Screenshots showed dark, oversized, out-of-place geometry filling most of the side-panel
+  widget with only a small correctly-scaled part of the actual schematic visible in a corner —
+  looked exactly like a broken camera, but the camera math (`getCenter()`/`getDefaultDistance()`/
+  the orbit matrix) checked out fine on paper. Actual cause: `PreviewRenderer.draw()` cleared
+  the FBO to alpha `0`, and `PreviewRenderUtils.blitFramebuffer` blits with blending on — so
+  everywhere the FBO had no schematic geometry (i.e. most of the frame, for a small schematic
+  viewed from a reasonable distance), the blit let the *live game world already on screen
+  behind the widget* show through instead of a clean background. What looked like "the camera
+  is somewhere else entirely" was literally a window into the real world. Fixed by clearing to
+  an opaque color instead. `./gradlew build` green; confirmed clean relaunch via
+  `tools/test-in-game.sh` — **user should check the preview again**; if the camera framing
+  itself still looks off once the background is fixed, that's a separate, real issue to
+  revisit (the math review above doesn't rule out a subtler bug, it just didn't find one).
 
 ---
 
