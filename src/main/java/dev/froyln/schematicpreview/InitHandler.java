@@ -11,6 +11,7 @@ import fi.dy.masa.malilib.input.ActionResult;
 import fi.dy.masa.malilib.registry.Registry;
 import dev.froyln.schematicpreview.config.ConfigScreen;
 import dev.froyln.schematicpreview.config.Configs;
+import dev.froyln.schematicpreview.data.DirectoryIconStore;
 import dev.froyln.schematicpreview.input.SchematicPreviewHotkeyProvider;
 
 public class InitHandler implements InitializationHandler
@@ -18,6 +19,8 @@ public class InitHandler implements InitializationHandler
     @Override
     public void registerModHandlers()
     {
+        DirectoryIconStore.load();
+
         List<ConfigOptionCategory> categories = ImmutableList.of(
                 BaseConfigOptionCategory.normal(Reference.MOD_INFO, "Generic", Configs.Generic.OPTIONS),
                 BaseConfigOptionCategory.normal(Reference.MOD_INFO, "Menu", Configs.Menu.OPTIONS),

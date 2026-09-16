@@ -1,5 +1,8 @@
 package dev.froyln.schematicpreview.gui;
 
+import java.nio.file.Path;
+import java.util.function.Predicate;
+
 import fi.dy.masa.malilib.gui.widget.list.BaseFileBrowserWidget;
 import fi.dy.masa.malilib.gui.widget.list.header.DirectoryNavigationWidget;
 
@@ -33,5 +36,10 @@ public final class BrowserWidgetAccessors
     public static DirectoryNavigationWidget getNavigationWidget(BaseFileBrowserWidget listWidget)
     {
         return ((BaseFileBrowserWidgetAccessor) listWidget).schematicpreview$getNavigationWidget();
+    }
+
+    public static Predicate<Path> getFileFilter(BaseFileBrowserWidget listWidget)
+    {
+        return ((BaseFileBrowserWidgetAccessor) listWidget).schematicpreview$getFileFilter();
     }
 }
