@@ -1,7 +1,9 @@
 package dev.froyln.schematicpreview.gui;
 
+import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.lwjgl.opengl.GL11;
@@ -44,6 +46,8 @@ public class PreviewWidget extends InteractableWidget
     private double targetY;
     private double targetZ;
     private double maxDistance = 64.0;
+
+    @Nullable private Consumer<BufferedImage> pendingCapture;
 
     private boolean freecam;
     private boolean dragging;
@@ -224,7 +228,7 @@ public class PreviewWidget extends InteractableWidget
             this.targetX = center.x;
             this.targetY = center.y;
             this.targetZ = center.z;
-            this.distance = renderer.getDefaultDistance();
+            this.distance = renderer.getDefaultDistance(Configs.Preview.PREVIEW_FOV.getDoubleValue(), (double) width / height);
             this.maxDistance = this.distance * 8.0;
             this.yRot = (float) Configs.Preview.PREVIEW_ROTATION_Y.getDoubleValue();
             this.xRot = (float) Configs.Preview.PREVIEW_ROTATION_X.getDoubleValue();
@@ -236,6 +240,39 @@ public class PreviewWidget extends InteractableWidget
         this.drawSceneToFbo(width, height, renderer);
         PreviewRenderUtils.blitFramebuffer(this.fbo, x, y, width, height, z);
         this.renderOverlayButtons(x, y, ctx);
+        this.serviceCaptureRequest(renderer);
+    }
+
+    /**
+     * Resolves a pending {@link #requestCapture(Consumer)} right after this frame's own
+     * {@link #drawSceneToFbo} call - capturing from here, instead of directly from the Save/Copy
+     * button's click handler, means the capture always runs with the exact GL state this frame
+     * just proved works (see the state-pinning comment in {@link PreviewRenderer#draw}), and with
+     * whatever tessellation progress this frame's {@code renderer.tick()} just made. A click
+     * handler runs during input processing, before any of that - capturing there could see
+     * leftover state from the last thing the previous frame's GUI drew, or from unrelated input
+     * handling (the "wrong image" / "white screen" bugs this replaced).
+     */
+    private void serviceCaptureRequest(PreviewRenderer renderer)
+    {
+        if (this.pendingCapture == null)
+        {
+            return;
+        }
+
+        Consumer<BufferedImage> callback = this.pendingCapture;
+        this.pendingCapture = null;
+
+        if (renderer.isTessellationDone() == false || this.fbo == null)
+        {
+            callback.accept(null);
+            return;
+        }
+
+        BufferedImage image = renderer.captureImage(this.fbo.framebufferWidth, this.fbo.framebufferHeight,
+                                                     Configs.Preview.PREVIEW_FOV.getDoubleValue(), this.yRot, this.xRot, this.distance,
+                                                     this.targetX, this.targetY, this.targetZ, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue());
+        callback.accept(image);
     }
 
     private void drawSceneToFbo(int width, int height, PreviewRenderer renderer)
@@ -273,6 +310,25 @@ public class PreviewWidget extends InteractableWidget
         ShapeRenderUtils.renderRectangle(this.getFullscreenButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, 0x80000000);
         this.renderPlainString(this.getFreecamButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "C", ctx);
         this.renderPlainString(this.getFullscreenButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "F", ctx);
+    }
+
+    /**
+     * Asks for the current view as a transparent-background image, for the fullscreen screen's
+     * save/copy buttons. {@code callback} runs on the next render frame (see
+     * {@link #serviceCaptureRequest}), with {@code null} if no frame has been rendered yet
+     * (schematic still loading/invalid), or if a large schematic's VBOs haven't finished
+     * incremental tessellation - {@link PreviewRenderer} only uploads its VBOs once the whole
+     * volume is done, so capturing mid-tessellation would silently draw an empty/partial scene.
+     */
+    public void requestCapture(Consumer<BufferedImage> callback)
+    {
+        if (this.cameraInitialized == false || this.fbo == null)
+        {
+            callback.accept(null);
+            return;
+        }
+
+        this.pendingCapture = callback;
     }
 
     public void close()

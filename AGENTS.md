@@ -203,6 +203,10 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   schematic cannot freeze the client for seconds.
 - **GL resources:** every `Framebuffer`/`VertexBuffer` created has an owner that deletes it
   (`PreviewCache.close()`), otherwise VRAM leaks across screen opens.
+- **External process:** `ScreenshotUtil.copyToClipboard` spawns `wl-copy --type image/png` on
+  Wayland sessions — fixed argv, no shell, PNG bytes on stdin only, 10 s wait; nothing from the
+  schematic (name, path, metadata) reaches the command line. Any other use of `ProcessBuilder`
+  must keep that shape.
 - **Known open items:** none yet.
 
 ## Conventions
@@ -327,3 +331,66 @@ This is a client-side mod with no network surface. Trust boundaries are files on
 - Litematica's browser remembers directory per `browserContext`; our entry widget must keep
   using `BaseFileBrowserWidget.DirectoryEntry.getFullPath()` and not cache paths across
   directory switches.
+- **`PreviewRenderer.draw()` must set *and* restore every GL state it depends on — never trust
+  what the caller left behind.** It runs from two very different contexts (the normal per-frame
+  GUI render, and a one-off capture triggered from the Save/Copy button's click handler, which
+  runs during input processing — before that frame's own render pass), and vanilla tile entity
+  renderers (`TileEntityEndPortalRenderer` especially, used by `minecraft:end_portal` — schematics
+  with an end-portal-based duper hit this) leave GL state changed on the assumption that the next
+  *world* render frame will reset it: `GlStateManager.enableLighting()` unconditionally at the end,
+  a foreign blend func, texgen coords still enabled. Two real bugs from this, both found via
+  `tools/test-in-game.sh` (invisible to `./gradlew build`): (1) selecting an end-portal schematic
+  left lighting on, so the rest of that GUI frame — every widget malilib drew afterward — came out
+  flat grey/white; (2) capturing from the click handler inherited whatever the *previous* frame's
+  last GL calls were (often `Framebuffer`'s own post-render blit, which disables alpha test) rather
+  than the sane state the widget's own render pass sets up every frame, so a capture could silently
+  drop content an alpha-tested cutout layer (e.g. redstone wire) needed alpha test enabled to draw
+  correctly, while the very same frame looked correct on screen. Fixed by having `draw()` pin every
+  state it uses at the top (alpha test, fog, color material, rescale normal, texgen, blend, depth
+  func) and reset the lighting/blend/texgen state again after `drawTileEntities()`, and — separately
+  — by moving the Save/Copy capture itself off the click handler and into the widget's own next
+  render frame (`PreviewWidget.requestCapture` / `serviceCaptureRequest`), so it always runs with
+  the same state and tessellation progress that frame's on-screen draw just used.
+- **Switch texture units with `GlStateManager.setActiveTexture`, never the raw
+  `OpenGlHelper.setActiveTexture`, when the calls that follow go through `GlStateManager`.**
+  `GlStateManager` caches bound-texture and `texture2D` state *per unit*, indexed by the unit it
+  last switched to; `OpenGlHelper.setActiveTexture` is a bare `glActiveTexture` that leaves that
+  index untouched. `PreviewRenderer.draw()` used the raw switch around its lightmap-unit setup, so
+  `bindTexture(white)` / `enableTexture2D()` / `disableTexture2D()` were recorded against unit 0's
+  cache entry while GL applied them to unit 1 — and unit 1's own entry kept claiming the vanilla
+  lightmap was bound. Every following world frame, `EntityRenderer.enableLightmap()`'s
+  `bindTexture(lightmap)` was then a cached no-op and the world rendered lit by our 1x1 white
+  texture: with the schematic browser open the whole world behind the GUI went 4–13x darker /
+  wrong ("all the lights change"). Proven with a probe reading `GL_TEXTURE_BINDING_2D` on unit 1
+  at the start of every `draw()`: 789/789 frames wrong before, 0/739 after. Same rule applies to
+  the client-side array states — disable them and `GlStateManager.resetColor()` after a VBO draw,
+  exactly as `RenderGlobal.renderBlockLayer` does.
+- **Never hand the AWT clipboard a `TYPE_INT_ARGB` image — convert to `TYPE_INT_RGB` first.**
+  AWT advertises the image in every format it can encode (PNG, JPEG, GIF, ...) and re-encodes on
+  demand; the JDK's JPEG writer mangles 4-channel ARGB input, so any app that pastes the JPEG
+  flavor (most non-image-editors) gets inverted pink/cyan colors on black while `xclip -t
+  image/png` looks perfect. Verified on the game's own JRE with a standalone test: ARGB
+  (220,200,150) reads back as (200,100,142), RGB exact. `ScreenshotUtil.copyToClipboard`
+  composites the capture over the preview's dark background into an RGB image for the AWT path
+  only; the `wl-copy` path (Wayland) and the saved PNG file keep the transparent capture.
+- **On a Wayland session, the AWT clipboard is unusable for images — `ScreenshotUtil` hands the
+  PNG to `wl-copy` instead.** The game (Java 8 AWT + LWJGL 2) is an X11 client under XWayland;
+  native Wayland apps (Discord, any Chromium/Electron app, browsers, Wayland terminals) read the
+  clipboard through the compositor's X11→Wayland bridge, and that bridge drops AWT's chunked
+  (INCR) selection transfer partway for anything beyond a few hundred KB. Symptom: the saved PNG
+  file is perfect and X11 readers (`xclip`) get the whole image, but a paste into Discord shows
+  only the top strip and WhatsApp Web shows a blank white image. Measured on Hyprland with a
+  6.25 MB AWT-owned PNG: three `wl-paste` reads returned 4.8 / 2.9 / 5.5 MB, all corrupt; with
+  `wl-copy` as owner, 3/3 intact; in-game after the fix, 3/3 identical 370 KB reads. Gate is
+  `WAYLAND_DISPLAY` being set; if `wl-copy` isn't on PATH it falls back to AWT. Hyprland does not
+  bridge a Wayland-owned selection back to XWayland at all (also true for a bare `wl-copy`), so
+  `xclip` sees nothing afterwards — that's the compositor, not us, and no X11 app is a realistic
+  paste target on such a desktop. Diagnose clipboard bugs from the *consumer's* display protocol:
+  `wl-paste -t image/png | wc -c` vs `xclip -selection clipboard -t image/png -o | wc -c`.
+- **The translucent block layer's blend func must use `(ONE, ONE_MINUS_SRC_ALPHA)` for the alpha
+  channel, not `(ONE, ZERO)`.** `(ONE, ZERO)` *replaces* the framebuffer's existing alpha with the
+  translucent quad's own alpha instead of compositing it (`outA = srcA + dstA*(1-srcA)`) — on the
+  background-free capture FBO (`transparentBackground = true`), a translucent block (water, a
+  portal) sitting in front of an opaque one made the *opaque* block read back as semi-transparent
+  in the saved/copied PNG. Invisible on the normal (opaque-background) widget FBO, since that
+  background is fully opaque already and blending its alpha with anything still reads as opaque.

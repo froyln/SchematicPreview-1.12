@@ -137,7 +137,8 @@ public final class PreviewCache
         Vec3d center = renderer.getCenter();
         float yRot = (float) Configs.Preview.PREVIEW_ROTATION_Y.getDoubleValue();
         float xRot = (float) Configs.Preview.PREVIEW_ROTATION_X.getDoubleValue();
-        renderer.draw(width, height, Configs.Preview.PREVIEW_FOV.getDoubleValue(), yRot, xRot, renderer.getDefaultDistance(),
+        double fov = Configs.Preview.PREVIEW_FOV.getDoubleValue();
+        renderer.draw(width, height, fov, yRot, xRot, renderer.getDefaultDistance(fov, (double) width / height),
                       center.x, center.y, center.z, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue());
 
         Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(true);
