@@ -374,7 +374,7 @@ button next to the directory navigation bar (left click forward, right click bac
 
 ## Task: Custom directory icons
 
-**Status:** pending
+**Status:** in progress
 
 Right-click a directory entry → screen with an item id text field and a position cycle
 (`default`, `center`, `default with schematic`) → icon persisted in
