@@ -374,7 +374,7 @@ button next to the directory navigation bar (left click forward, right click bac
 
 ## Task: Custom directory icons
 
-**Status:** in progress
+**Status:** done (`3538b6b`)
 
 Right-click a directory entry → screen with an item id text field and a position cycle
 (`default`, `center`, `default with schematic`) → icon persisted in
@@ -401,10 +401,51 @@ their first schematic file (when the type has previews).
 ### Acceptance
 
 - Set an icon, restart the client, icon is still there; invalid id shows an error and does
-  not save; deleting the JSON resets to defaults without errors.
-- `./gradlew build` exits 0.
+  not save; deleting the JSON resets to defaults without errors. — **not verified in-game
+  this session** (see notes; same `runClient` network gap as prior tasks). Code path reviewed
+  and matches: `DirectoryIconStore.set`/`Item.getByNameOrId` gate blocks invalid ids before
+  `applyValue()` returns true, so `DirectoryIconEditScreen` stays open and the text field's
+  own validator shows the error inline; `DirectoryIconStore.load()` drops unknown item ids
+  silently without rewriting the file; a missing/deleted JSON file parses to an empty store
+  via `JsonUtils.parseJsonFile` with no exception.
+- `./gradlew build` exits 0 — **PASS**, see notes.
 
 ### Notes / findings
+
+- **Build verified programmatically**, twice (once before `/review`, once after its
+  box-geometry finding was fixed): `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` →
+  `BUILD SUCCESSFUL` both times.
+- Reused malilib's existing `BaseTextInputScreen` for `DirectoryIconEditScreen` instead of a
+  bespoke screen (text field + OK/Reset/Cancel + validator/error-message wiring already
+  built in), and its `TextFieldValidator` for live "unknown item id" feedback. Reused
+  `Item.getByNameOrId` (vanilla) instead of hand-parsing `ResourceLocation`s against
+  `Item.REGISTRY`.
+- `BaseFileBrowserWidget.getFileFilter()` turned out to be `protected`, not public as assumed
+  from a first read of the malilib source — added a `fileFilter` field accessor to the
+  existing `BaseFileBrowserWidgetAccessor` mixin (alongside the task 3 `navigationWidget`
+  one) and a matching static getter in `gui/BrowserWidgetAccessors` (the existing
+  outside-the-mixin-package helper class from task 3's Gotchas fix), rather than
+  reimplementing the schematic-extension list by hand — directory rows now find their first
+  schematic file using the exact same filter Litematica configured the browser with.
+- **`/review` caught a real correctness bug, fixed**: the `CENTER` icon position sized its
+  box as the *entire row width* (`this.getWidth()`) in `LIST`/`LIST_PREVIEW` mode, not the
+  `previewSize` square that `textOffset` was actually reserved for (and that
+  `renderPreviewBox` draws schematic previews into) — the icon rendered centered in the
+  middle of a much wider row, disconnected from its own icon column, most visible in the
+  default `LIST` view. Fixed by giving the `CENTER` branch the same box geometry
+  (`getHeight() - PREVIEW_PADDING * 2` square, offset by `PREVIEW_PADDING`) as
+  `renderPreviewBox`'s own non-tile branch. `./gradlew build` re-verified green after the fix.
+  Two non-blocking notes from the same review, not acted on: `findFirstSchematic` does a
+  synchronous `Files.list` per directory row on the GUI thread (fine at normal schematic-folder
+  sizes, could hitch on a folder with very many subdirectories); right-clicking specifically
+  over a directory's icon area now opens `DirectoryIconEditScreen` instead of the vanilla
+  context menu for that hit region (right-click elsewhere on the row is unaffected) — matches
+  the new hover tooltip and is the intended behavior.
+- **Whoever picks up task 5**: run `tools/test-in-game.sh` (or `./gradlew runClient` on a
+  normal network) and confirm the acceptance items above plus the position-cycle rendering
+  (`default`/`center`/`default_with_schematic`) actually looks right in all five preview
+  types — this session could not verify any of it visually (same network limitation as tasks
+  1-3).
 
 ---
 
@@ -493,6 +534,13 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   new shared FBO in `PreviewCache` rather than one per entry. `./gradlew build` verified green
   (twice — once after a `/review`-caught missing `previewMaxVolume` gate was fixed); `runClient`
   in-game check still needed on a normal network (same limitation as tasks 1-2).
+
+- Custom directory icons — done (`3538b6b`), `DirectoryIconStore` (Gson-backed
+  `config/schematicpreview_icons.json`) + `IconPosition` + `DirectoryIconEditScreen`
+  (built on malilib's `BaseTextInputScreen`), wired into `PreviewDirectoryEntryWidget` via a
+  new `fileFilter` accessor on `BaseFileBrowserWidgetAccessor`. `./gradlew build` verified
+  green (twice — once after a `/review`-caught `CENTER`-position box-sizing bug was fixed);
+  `runClient`/in-game check still needed on a normal network (same limitation as tasks 1-3).
 
 ## Dropped / deferred
 
