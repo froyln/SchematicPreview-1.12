@@ -658,7 +658,7 @@ asked for; add later by widening the `instanceof` gate if wanted.
 
 ## Task: Polish and first release
 
-**Status:** in progress
+**Status:** done (`5c419d0`)
 
 Translations complete (`en_us.lang`), icon textures for the overlay buttons (own drawings,
 not copied from the original), README with screenshots, LICENSE (pick one — LGPL-3.0 keeps
@@ -680,9 +680,13 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   screenshot table pointing at `docs/images/side-panel.png` / `tiles.png` / `replace.png`,
   malilib 0.53 or 0.54). `mod_version` was already `0.1.0`. Lang audit: every
   `schematicpreview.*` key referenced in code exists in `en_us.lang`.
-- **Still open, needs the user:** drop the three screenshots into `docs/images/` (user said they
-  will take them later), and the fresh-profile acceptance test above. The current build is
-  installed in the `1.12.2 test ai` instance for a look at the new icons.
+- Screenshots added by the user (`acbd3f7`): side panel, fullscreen, material list — taken
+  with the pre-icon build, so they show the old letter buttons; a tile-layout shot is still
+  wanted (`docs/images/tiles.png`, README has the slot commented).
+- **Verified by the user in the `1.12.2 test ai` instance after relaunch** ("icons work"):
+  icons render, previous features intact. Not a literally fresh profile — that instance has
+  ~15 other LiteLoader mods and malilib 0.54 — but it is the real-world target; the user
+  chose to close the task on that. Icon commit reviewed with `/review` (verdict: ship).
 
 ---
 
@@ -728,6 +732,11 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   placement) have its Replace edits written back without loading it. `./gradlew build` verified
   green; reviewed with `/review` (verdict: ship, no findings); Save flow verified in-game by the
   user after the malilib-0.54 popup fix `ae3642b` (`PopupScreenCompat`).
+
+- Polish and first release — done (`5c419d0`), icon sheet + `SchematicPreviewIcons` for the
+  overlay/toolbar buttons, LGPL-3.0 `LICENSE`, release README with usage and screenshots,
+  `mod_version` 0.1.0. Verified by the user in the test instance (icons + features work);
+  `/review` on the icon commit: ship.
 
 ## Dropped / deferred
 
