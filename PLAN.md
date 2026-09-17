@@ -451,7 +451,7 @@ their first schematic file (when the type has previews).
 
 ## Task: "Replace" button in the material list
 
-**Status:** pending
+**Status:** done (`bb244dd`)
 
 Each material list row (for schematic- and placement-based lists only) gets a `Replace`
 button that opens a searchable block picker and replaces every block of that type in the
@@ -494,6 +494,37 @@ metadata as modified so Litematica's save prompt works.**
 
 ### Notes / findings
 
+- **Build verified programmatically:** `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew build` →
+  `BUILD SUCCESSFUL`, exit 0. Unzipped the litemod and confirmed all 7 new classes packaged
+  (`BlockReplacer`, `MaterialListAccessors`, `ReplaceMaterialListEntryWidget`,
+  `BlockSelectScreen` + its nested entry widget, `MaterialListScreenMixin`,
+  `MaterialListSchematicAccessor`, `MaterialListPlacementAccessor`) and
+  `mixins.schematicpreview.json` lists the three new mixins alongside the existing four.
+- **Reviewed with `/review` before marking this task done.** Verdict: ship, no correctness,
+  security, or scope-creep findings. Verified against the actual litematica/malilib reference
+  sources: `MaterialListScreenMixin` shadows a genuinely `protected` field and injects at the
+  right point; the two new accessor mixins match real private field names (`schematic`,
+  `regions` on `MaterialListSchematic`; `placement` on `MaterialListPlacement`); `BlockReplacer`
+  correctly scopes to the passed `regionNames` (respecting `MaterialListSchematic`'s own
+  sub-region filter when the list was created for a subset via shift-click), only adjusts
+  `SchematicMetadata.totalBlocks` on air↔non-air transitions, calls `setTimeModifiedToNow`/
+  `setModifiedSinceSaved`, and calls the real `markAllPlacementsOfSchematicForRebuild`; the
+  Replace button installs only for `MaterialListSchematic`/`MaterialListPlacement`, correctly
+  excluding the area analyzer; picking Replace on a material-list row whose item has no block
+  form (`Block.getBlockFromItem` returns air) shows an error instead of opening the picker.
+- Accessor casts to `MaterialListSchematicAccessor`/`MaterialListPlacementAccessor` live in a
+  new plain helper, `materials/MaterialListAccessors`, outside the mixin package — same pattern
+  as task 3's `gui/BrowserWidgetAccessors`, for the same reason (see AGENTS.md → Gotchas).
+- Reused malilib's `DataListWidget<Block>` + `addDefaultSearchBar()` for `BlockSelectScreen`
+  instead of a bespoke picker (same pattern `MaterialListScreen` itself uses for its own list),
+  and `MaterialListEntryWidget`'s existing protected `ignoreButton`/`materialList` fields to
+  place the Replace button and reach the backing list without a new accessor.
+- **Whoever picks up task 6**: run `tools/test-in-game.sh` (or `./gradlew runClient` on a
+  normal network) and confirm this task's acceptance items — replacing stone with dirt shows
+  the count message, the list refreshes, the placement re-renders with dirt, Schematic Manager
+  shows the schematic as modified, saving writes dirt, and a stairs→stairs replace keeps
+  `facing`/`half` — this session could not verify any of it visually (same network limitation
+  as tasks 1-4).
 ---
 
 ## Task: Polish and first release
@@ -541,6 +572,14 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   new `fileFilter` accessor on `BaseFileBrowserWidgetAccessor`. `./gradlew build` verified
   green (twice — once after a `/review`-caught `CENTER`-position box-sizing bug was fixed);
   `runClient`/in-game check still needed on a normal network (same limitation as tasks 1-3).
+
+- "Replace" button in the material list — done (`bb244dd`), `BlockReplacer` +
+  `MaterialListAccessors` + `BlockSelectScreen` + `ReplaceMaterialListEntryWidget`, wired into
+  schematic- and placement-backed material lists via `MaterialListScreenMixin` +
+  `MaterialListSchematicAccessor`/`MaterialListPlacementAccessor` (area analyzer lists
+  unaffected). `./gradlew build` verified green; reviewed with `/review` (verdict: ship, no
+  findings); `runClient`/in-game check still needed on a normal network (same limitation as
+  tasks 1-4).
 
 ## Dropped / deferred
 
