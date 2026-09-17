@@ -658,7 +658,7 @@ asked for; add later by widening the `instanceof` gate if wanted.
 
 ## Task: Polish and first release
 
-**Status:** pending
+**Status:** in progress
 
 Translations complete (`en_us.lang`), icon textures for the overlay buttons (own drawings,
 not copied from the original), README with screenshots, LICENSE (pick one — LGPL-3.0 keeps
@@ -671,6 +671,18 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   `latest.log`, all features of the previous tasks work.
 
 ### Notes / findings
+
+- Done in this session (2026-09-16/17): overlay/toolbar icons (`7cbb377` — `tools/gen-icons.py`
+  draws a 64x64 sheet, `gui/SchematicPreviewIcons` exposes five `BaseMultiIcon`s with
+  disabled/normal/hovered variants; the fullscreen/freecam corner buttons, the fullscreen
+  Save/Copy buttons and the browser preview-type button use them), LICENSE = LGPL-3.0 verbatim
+  text (`23e772a`, user's choice), README rewritten for release (features, usage per feature,
+  screenshot table pointing at `docs/images/side-panel.png` / `tiles.png` / `replace.png`,
+  malilib 0.53 or 0.54). `mod_version` was already `0.1.0`. Lang audit: every
+  `schematicpreview.*` key referenced in code exists in `en_us.lang`.
+- **Still open, needs the user:** drop the three screenshots into `docs/images/` (user said they
+  will take them later), and the fresh-profile acceptance test above. The current build is
+  installed in the `1.12.2 test ai` instance for a look at the new icons.
 
 ---
 
