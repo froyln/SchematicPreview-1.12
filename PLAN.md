@@ -555,7 +555,7 @@ metadata as modified so Litematica's save prompt works.**
 
 ## Task: Save / Save as buttons in the material list
 
-**Status:** in progress
+**Status:** done (`665e3b6`)
 
 Finding (2026-09-16): "replace without loading" already works — Litematica's schematic browser
 has a `Material list` button (`SchematicBrowserScreen.createMaterialList`) that reads the file
@@ -624,6 +624,27 @@ asked for; add later by widening the `instanceof` gate if wanted.
 
 ### Notes / findings
 
+- **Build verified programmatically:** `JAVA_HOME=.jdk-cache/jdk8u302-b08 ./gradlew compileJava`
+  and `./gradlew build` both `BUILD SUCCESSFUL`, exit 0. Unzipped the litemod and confirmed
+  `SchematicSaver.class`, the rebuilt `MaterialListScreenMixin.class`, and the rebuilt
+  `PreviewCache.class` are packaged.
+- **Reviewed with `/review` before marking this task done.** Verdict: ship, no findings.
+  Confirmed against the real sources that `MaterialListScreen → BaseListScreen →
+  BaseTabbedScreen → BaseScreen` makes `extends BaseScreen` a valid shadow-free route to
+  `addWidget` (same trick as `SchematicInfoWidgetMixin extends ContainerWidget`), that
+  `MaterialListSchematic.schematic` is `final` and non-null so the savable-schematic gate can't
+  NPE, and that the `writeToFile`/`ConfirmActionScreen`/`TextInputScreen` call shapes match the
+  real APIs.
+- Implemented via `MaterialListScreenMixin` gains (not a separate mixin): TAIL injects into
+  `reAddActiveWidgets`/`updateWidgetPositions` add and position the two buttons; a `@Unique`
+  private helper computes the savable `ISchematic` (or `null`) once per check, reusing
+  `MaterialListAccessors.getSchematic` from task 5 rather than a new accessor.
+- **Not verified in-game this session** (no `runClient`/`tools/test-in-game.sh` run) — the
+  acceptance items above (Save/Save as flow, cache invalidation showing dirt, "exists" error
+  keeping the input open, buttons absent on area-analyzer/placement/no-file lists) still need a
+  real playtest. Whoever picks up task 7 (or the user, sooner) should run
+  `tools/test-in-game.sh` and confirm them before relying on this feature.
+
 ---
 
 ## Task: Polish and first release
@@ -679,6 +700,13 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   unaffected). `./gradlew build` verified green; reviewed with `/review` (verdict: ship, no
   findings); `runClient`/in-game check still needed on a normal network (same limitation as
   tasks 1-4).
+
+- Save / Save as buttons in the material list — done (`665e3b6`), `SchematicSaver` +
+  `PreviewCache.invalidate` wired into `MaterialListScreenMixin`, letting a schematic read
+  straight from disk via `SchematicBrowserScreen`'s "Material list" button (no load, no
+  placement) have its Replace edits written back without loading it. `./gradlew build` verified
+  green; reviewed with `/review` (verdict: ship, no findings); `runClient`/in-game check still
+  needed (same limitation as tasks 1-5).
 
 ## Dropped / deferred
 
