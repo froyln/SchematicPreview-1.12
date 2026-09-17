@@ -308,8 +308,8 @@ public class PreviewWidget extends InteractableWidget
 
         ShapeRenderUtils.renderRectangle(this.getFreecamButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, freecamColor);
         ShapeRenderUtils.renderRectangle(this.getFullscreenButtonX(), barY, this.getZ() + 1f, BUTTON_SIZE, BUTTON_SIZE, 0x80000000);
-        this.renderPlainString(this.getFreecamButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "C", ctx);
-        this.renderPlainString(this.getFullscreenButtonX() + 3, barY + 2, this.getZ() + 2f, 0xFFFFFFFF, true, "F", ctx);
+        SchematicPreviewIcons.FREECAM.renderAt(this.getFreecamButtonX(), barY, this.getZ() + 2f, true, this.isOverFreecamButton(ctx.mouseX, ctx.mouseY));
+        SchematicPreviewIcons.FULLSCREEN.renderAt(this.getFullscreenButtonX(), barY, this.getZ() + 2f, true, this.isOverFullscreenButton(ctx.mouseX, ctx.mouseY));
     }
 
     /**

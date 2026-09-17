@@ -42,18 +42,16 @@ public class PreviewFullscreenScreen extends BaseScreen
         this.widget = this.addWidget(new PreviewWidget(this.getX(), this.getY() + TOP_MARGIN,
                                                         this.getScreenWidth(), this.getScreenHeight() - TOP_MARGIN, this.path));
 
-        this.saveButton = this.addWidget(new GenericButton(BUTTON_SIZE, BUTTON_SIZE));
-        this.saveButton.getPadding().setLeftRight(1);
-        this.saveButton.setDisplayString("S");
+        this.saveButton = this.addWidget(GenericButton.create(BUTTON_SIZE, BUTTON_SIZE, SchematicPreviewIcons.SAVE));
+        this.saveButton.setRenderButtonBackgroundTexture(true);
         this.saveButton.translateAndAddHoverString("schematicpreview.button.save_screenshot");
         this.saveButton.setActionListener((mouseButton, w) -> {
             this.schematicpreview$onSave();
             return true;
         });
 
-        this.copyButton = this.addWidget(new GenericButton(BUTTON_SIZE, BUTTON_SIZE));
-        this.copyButton.getPadding().setLeftRight(1);
-        this.copyButton.setDisplayString("C");
+        this.copyButton = this.addWidget(GenericButton.create(BUTTON_SIZE, BUTTON_SIZE, SchematicPreviewIcons.COPY));
+        this.copyButton.setRenderButtonBackgroundTexture(true);
         this.copyButton.translateAndAddHoverString("schematicpreview.button.copy_screenshot");
         this.copyButton.setActionListener((mouseButton, w) -> {
             this.schematicpreview$onCopy();

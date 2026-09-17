@@ -20,6 +20,7 @@ import dev.froyln.schematicpreview.config.Configs;
 import dev.froyln.schematicpreview.config.PreviewType;
 import dev.froyln.schematicpreview.gui.BrowserWidgetAccessors;
 import dev.froyln.schematicpreview.gui.PreviewDirectoryEntryWidget;
+import dev.froyln.schematicpreview.gui.SchematicPreviewIcons;
 import dev.froyln.schematicpreview.gui.TileEntryWidgetFactory;
 
 /**
@@ -46,7 +47,7 @@ public abstract class BaseSchematicBrowserScreenMixin
         this.schematicpreview$applyPreviewType(listWidget);
 
         DirectoryNavigationWidget nav = BrowserWidgetAccessors.getNavigationWidget(listWidget);
-        GenericButton button = new GenericButton(BUTTON_SIZE, BUTTON_SIZE);
+        GenericButton button = GenericButton.create(BUTTON_SIZE, BUTTON_SIZE, SchematicPreviewIcons.PREVIEW_TYPE);
         button.translateAndAddHoverString("schematicpreview.button.preview_type");
         button.setActionListener((mouseButton, widget) -> {
             if (mouseButton != 0 && mouseButton != 1)
