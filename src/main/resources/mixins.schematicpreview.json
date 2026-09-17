@@ -8,7 +8,10 @@
 		"SchematicInfoWidgetMixin",
 		"BaseSchematicBrowserScreenMixin",
 		"BaseFileBrowserWidgetAccessor",
-		"BaseListWidgetAccessor"
+		"BaseListWidgetAccessor",
+		"MaterialListScreenMixin",
+		"MaterialListSchematicAccessor",
+		"MaterialListPlacementAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

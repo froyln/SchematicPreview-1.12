@@ -58,3 +58,4 @@ schematicpreview.gui.replace_block=Replace
 schematicpreview.gui.replace_block.title=Replace %s with
 schematicpreview.gui.replace_block.result=Replaced %s blocks with %s
 schematicpreview.gui.block_select.search=Search
+schematicpreview.message.replace_block.not_a_block=This item has no placeable block form
