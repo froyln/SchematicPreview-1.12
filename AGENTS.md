@@ -78,7 +78,7 @@ at. There are no automated tests for rendering. Two ways to get an in-game sessi
   offline, via `prismlauncher --launch`. Preferred when `runClient` stalls. That instance's
   malilib is **0.54.0**, one minor version ahead of this project's pinned `0.53.0` — noted as a
   possible source of divergence if something behaves differently there than in `runClient`, but
-  not expected to matter (malilib versions are additive).
+  **it does matter for popup screens** — see Gotchas, `PopupScreenCompat`.
 
 This command is also what `.claude/hooks/verify-on-stop.sh` runs when enabled, and the
 default `/goal` condition: "`./gradlew build` exits 0".
@@ -109,6 +109,7 @@ src/main/java/dev/froyln/schematicpreview/
 ├── gui/PreviewFullscreenScreen.java  [done]
 ├── gui/DirectoryIconEditScreen.java  [task 4]
 ├── gui/BlockSelectScreen.java    # searchable block list for the Replace feature  [task 5]
+├── gui/PopupScreenCompat.java    # keeps malilib popups popup-sized on malilib 0.54+ (see Gotchas)  [done]
 ├── gui/PreviewDirectoryEntryWidget.java  # replaces malilib DirectoryEntryWidget  [done]
 ├── gui/TileEntryWidgetFactory.java       # ListEntryWidgetFactory: N columns grid layout  [done]
 ├── gui/ReplaceMaterialListEntryWidget.java  # MaterialListEntryWidget + Replace button  [task 5]
@@ -394,6 +395,21 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   `xclip` sees nothing afterwards — that's the compositor, not us, and no X11 app is a realistic
   paste target on such a desktop. Diagnose clipboard bugs from the *consumer's* display protocol:
   `wl-paste -t image/png | wc -c` vs `xclip -selection clipboard -t image/png -o | wc -c`.
+- **Every malilib popup screen we open goes through `PopupScreenCompat.keepPopupSize()` — malilib
+  0.54 resizes popups to the whole window otherwise.** 0.53 (what we compile against) decides
+  "is this a full-screen screen or a popup" with `isFullScreen()` (`screenWidth == window
+  width`). 0.54 replaced that with a `useWindowDimensions` flag defaulting to `true`, and its own
+  `ConfirmActionScreen`/`BaseTextInputScreen` never clear it — so on open,
+  `onScreenResolutionSet` sets `screenWidth/Height` to the window size while `x/y` stay where
+  the constructor centered the *small* box. Symptom: a black box hanging off the bottom/right
+  edges with the title and message visible and no buttons — they're placed at
+  `y + screenHeight - 26`, i.e. off-screen. Independent of the vanilla GUI scale (user tried).
+  Proven with a tick-handler log of the live screen: `280x80` right after construction,
+  `938x503` (= window) once open. `./gradlew build` can't catch it (0.53 has no such method);
+  `tools/test-in-game.sh`'s instance runs 0.54 and does. The helper calls
+  `setUseWindowDimensions(false)` reflectively when it exists, so one litemod works on both.
+  Any new `ConfirmActionScreen`/`TextInputScreen`/`BaseTextInputScreen` subclass must go through
+  it.
 - **The translucent block layer's blend func must use `(ONE, ONE_MINUS_SRC_ALPHA)` for the alpha
   channel, not `(ONE, ZERO)`.** `(ONE, ZERO)` *replaces* the framebuffer's existing alpha with the
   translucent quad's own alpha instead of compositing it (`outA = srcA + dstA*(1-srcA)`) — on the

@@ -30,6 +30,7 @@ public class DirectoryIconEditScreen extends BaseTextInputScreen
 
         this.directory = directory;
         this.baseHeight += 26;
+        PopupScreenCompat.keepPopupSize(this);
 
         DirectoryIconStore.Entry existing = DirectoryIconStore.get(directory);
         this.position = existing != null ? existing.position : IconPosition.DEFAULT;

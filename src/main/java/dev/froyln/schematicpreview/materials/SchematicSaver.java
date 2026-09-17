@@ -10,6 +10,7 @@ import fi.dy.masa.malilib.gui.TextInputScreen;
 import fi.dy.masa.malilib.gui.util.GuiUtils;
 import fi.dy.masa.malilib.overlay.message.MessageDispatcher;
 
+import dev.froyln.schematicpreview.gui.PopupScreenCompat;
 import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
@@ -37,7 +38,7 @@ public final class SchematicSaver
                 () -> overwrite(schematic, file, name),
                 "schematicpreview.gui.save_schematic.confirm_message", name);
         screen.setParent(GuiUtils.getCurrentScreen());
-        BaseScreen.openScreen(screen);
+        BaseScreen.openScreen(PopupScreenCompat.keepPopupSize(screen));
     }
 
     /**
@@ -51,8 +52,9 @@ public final class SchematicSaver
         Path dir = schematic.getFile().getParent();
         String defaultName = stripExtension(schematic) + "_replaced";
 
-        BaseScreen.openScreenWithParent(new TextInputScreen("schematicpreview.gui.save_schematic_as.title",
-                defaultName, (name) -> writeAs(schematic, dir, name)));
+        BaseScreen.openScreenWithParent(PopupScreenCompat.keepPopupSize(
+                new TextInputScreen("schematicpreview.gui.save_schematic_as.title",
+                                    defaultName, (name) -> writeAs(schematic, dir, name))));
     }
 
     private static void overwrite(ISchematic schematic, Path file, String name)
