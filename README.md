@@ -18,9 +18,15 @@ re-implemented from scratch:
 
 <!-- Drop PNGs into docs/images/ with these names; the table renders once they exist. -->
 
-| Browser side panel | Tile layout | Material list Replace |
-|---|---|---|
-| ![side panel](docs/images/side-panel.png) | ![tiles](docs/images/tiles.png) | ![replace](docs/images/replace.png) |
+| Browser side panel | Fullscreen preview |
+|---|---|
+| ![side panel](docs/images/side-panel.png) | ![fullscreen](docs/images/fullscreen.png) |
+
+| Material list with Replace / Save / Save as |
+|---|
+| ![replace](docs/images/replace.png) |
+
+<!-- Wanted: docs/images/tiles.png — the browser in a tile layout (preview-type button). -->
 
 ## Usage
 
