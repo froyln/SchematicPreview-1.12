@@ -11,9 +11,36 @@ re-implemented from scratch:
 - **Directory icons** — right-click a folder to give it any item as icon.
 - **Replace button** in the material list — swap every block of one type in the schematic.
 
-Status: **in progress**. Task 1 (mod skeleton: configs, hotkey, config screen) is done and
-builds; the features above are not implemented yet. See `PLAN.md` for the task list and
-`AGENTS.md` for the design.
+- **Save / Save as** in the material list — write a schematic edited with Replace back to
+  disk (overwrite or new file) without loading or placing it first.
+
+## Screenshots
+
+<!-- Drop PNGs into docs/images/ with these names; the table renders once they exist. -->
+
+| Browser side panel | Tile layout | Material list Replace |
+|---|---|---|
+| ![side panel](docs/images/side-panel.png) | ![tiles](docs/images/tiles.png) | ![replace](docs/images/replace.png) |
+
+## Usage
+
+- **Config screen:** `Right Shift + F8` (rebindable) or LiteLoader's mod panel. Tabs Generic /
+  Menu / Preview / Hotkeys.
+- **Preview:** select a schematic in any Litematica browser. Drag = rotate, scroll = zoom,
+  the two buttons in the preview's corner open **fullscreen** and toggle **freecam** (in
+  freecam, drag pans instead of orbiting). Fullscreen has **Save PNG** and **Copy** buttons
+  (Wayland desktops need `wl-copy` on PATH for Copy).
+- **Preview type:** the grid button next to the browser's path bar cycles List / List preview /
+  Tile 5 / 4 / 3 columns (right-click cycles backwards). Tile and list previews are skipped for
+  schematics above `previewMaxVolume` blocks (default 125 000).
+- **Directory icons:** right-click a folder's icon in the browser, type an item id
+  (`minecraft:diamond_block`), pick a position. Stored in `config/schematicpreview_icons.json`.
+- **Replace:** open a material list (browser → *Material list*, or Loaded Schematics), click
+  **Replace** on a row, pick a block. Keeps orientation properties the two blocks share.
+- **Save / Save as:** in a schematic-backed material list, next to *Export*. *Save* overwrites
+  the file after a confirmation; *Save as* asks for a name and never overwrites.
+
+Task history and design notes: `PLAN.md`, `AGENTS.md`, `docs/port-design.md`.
 
 ## Requirements (runtime)
 
@@ -21,7 +48,7 @@ builds; the features above are not implemented yet. See `PLAN.md` for the task l
 |-----|---------|
 | Minecraft | 1.12.2 |
 | LiteLoader | 1.12.2 |
-| MaLiLib (LiteLoader) | 0.53.0 |
+| MaLiLib (LiteLoader) | 0.53.0 or 0.54.0 |
 | Litematica (LiteLoader) | 0.31.4 |
 
 MaLiLib and Litematica for 1.12.2 are on [masa's download page](https://masa.dy.fi/mcmods/client_mods/?mcver=1.12.2),
@@ -64,5 +91,5 @@ Optional per-machine files: copy `CLAUDE.local.md.example` → `CLAUDE.local.md`
 
 ## License
 
-Not chosen yet (see the last task in `PLAN.md`). The original Fabric mod is
-"All rights reserved" and no code from it is used here.
+[LGPL-3.0](LICENSE), same as Litematica and MaLiLib. This is a clean-room reimplementation:
+the original Fabric mod is "All rights reserved" and no code or assets from it are used here.
