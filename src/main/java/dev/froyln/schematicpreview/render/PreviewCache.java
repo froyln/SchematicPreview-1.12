@@ -158,6 +158,24 @@ public final class PreviewCache
         }
     }
 
+    /**
+     * Drops the cached schematic and tessellated renderer for {@code file}, so the next
+     * preview request re-reads it from disk. Call after overwriting a schematic file in place
+     * (see {@code materials.SchematicSaver}) - otherwise the browser keeps showing the
+     * pre-overwrite geometry for that path. Runs on the client thread, same as {@link #close()}.
+     */
+    public static void invalidate(Path file)
+    {
+        SCHEMATICS.remove(file);
+
+        PreviewRenderer renderer = RENDERERS.remove(file);
+
+        if (renderer != null)
+        {
+            renderer.close();
+        }
+    }
+
     public static void close()
     {
         for (PreviewRenderer renderer : RENDERERS.values())

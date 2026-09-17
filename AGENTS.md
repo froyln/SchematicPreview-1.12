@@ -117,6 +117,7 @@ src/main/java/dev/froyln/schematicpreview/
 ├── render/PreviewCache.java              # Path → loaded ISchematic (async) + tessellated renderers + shared small-preview FBO  [done]
 ├── render/PreviewRenderUtils.java        # shared FBO-blit/placeholder helpers (PreviewWidget + PreviewCache)  [done]
 ├── materials/BlockReplacer.java          # replace block in all region containers  [task 5]
+├── materials/SchematicSaver.java         # Save/Save as a schematic read for a material list  [task 6]
 └── mixin/                                # SchematicInfoWidgetMixin, BaseSchematicBrowserScreenMixin,
                                           # BaseFileBrowserWidgetAccessor, BaseListWidgetAccessor [done],
                                           # MaterialListScreenMixin, MaterialListSchematicAccessor,
@@ -175,7 +176,13 @@ the private `schematic`/`regions`/`placement` fields. `BlockReplacer` iterates e
 container (`getBlockState`/`setBlockState`), copies properties both blocks share, fixes
 `SchematicMetadata.totalBlocks` for air↔non-air, `setTimeModifiedToNow()`,
 `setModifiedSinceSaved()`, then marks all placements of that schematic for chunk rebuild via
-`DataManager.getSchematicPlacementManager()`.
+`DataManager.getSchematicPlacementManager()`. Save: the same mixin adds Save/Save as buttons
+next to `MaterialListScreen`'s Export button, for `MaterialListSchematic` lists whose schematic
+has a file — covers `SchematicBrowserScreen`'s "Material list" button, which reads a schematic
+straight from disk with no load/placement, so Replace edits there had no way back to disk;
+`SchematicSaver.save` overwrites after a confirm screen and calls `PreviewCache.invalidate` so
+the browser's cached preview isn't stale, `saveAs` writes a new file via Litematica's own
+`ISchematic.writeToFile(dir, name, false)` (refuses an existing name itself).
 
 State lives in: `Configs` statics (malilib persists them), `DirectoryIconStore` (static map +
 dirty flag), `PreviewCache` (static, GL resources — must be released on the render thread).
