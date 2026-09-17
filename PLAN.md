@@ -519,12 +519,38 @@ metadata as modified so Litematica's save prompt works.**
   instead of a bespoke picker (same pattern `MaterialListScreen` itself uses for its own list),
   and `MaterialListEntryWidget`'s existing protected `ignoreButton`/`materialList` fields to
   place the Replace button and reach the backing list without a new accessor.
+- **Real in-game bugs found by the user after this landed, fixed in `fc14b5e`**: (1) the block
+  picker (`BlockSelectScreen`) listed `Block.REGISTRY` directly, one row per Java `Block` class -
+  since most vanilla variant families (slabs, wool, wood, stone, sand, sandstone, prismarine,
+  quartz block, ...) are a single `Block` with a metadata property, only that block's *default*
+  variant ever appeared (e.g. "Stone Slab", never "Quartz Slab"), so most of what the user
+  expected to pick from was simply missing from the list; (2) `BlockReplacer` matched/replaced
+  at the `Block` granularity too, so replacing one slab variant would have matched *every*
+  variant of that slab block, and - because vanilla slabs additionally pack their placement-only
+  top/bottom half into the raw state metadata (needed for the old single-nibble world storage
+  format) - copying "shared properties" naively would have discarded that half on any variant
+  swap. Root-cause fix, not two patches: switched to `Block.getSubBlocks()` for listing (every
+  real placeable `(Block, metadata)` pair, not just one per class) and to
+  `Block.damageDropped(state)` for both matching and identity (the same "what item does this
+  state require" mapping the material list itself already uses to build its rows), which
+  generically separates "placement/orientation properties" (safe to copy from the old block,
+  e.g. slab half, stair facing) from "identity properties" (must come from the picked variant,
+  e.g. slab stone/quartz type) with no per-block special-casing. `./gradlew build` re-verified
+  green after the fix; confirmed clean relaunch via `tools/test-in-game.sh` (mod loads, no
+  `FATAL`/`Mixin apply failed`/`NoClassDefFoundError`) - **user should retry replacing a mixed
+  up/down slab with a different slab type now**.
+- **Known remaining limitation, not fixed**: `damageDropped` won't line up with the row's item
+  for the handful of vanilla blocks whose "required build item" isn't a simple 1:1 function of
+  their own state (beds, banners, and anything `MaterialCache.requiresMultipleItems` treats
+  specially) - out of scope for what was asked (stone/wool/slab/wood-style variant families),
+  and no worse than the block-granularity bug it replaces.
 - **Whoever picks up task 6**: run `tools/test-in-game.sh` (or `./gradlew runClient` on a
   normal network) and confirm this task's acceptance items — replacing stone with dirt shows
   the count message, the list refreshes, the placement re-renders with dirt, Schematic Manager
-  shows the schematic as modified, saving writes dirt, and a stairs→stairs replace keeps
-  `facing`/`half` — this session could not verify any of it visually (same network limitation
-  as tasks 1-4).
+  shows the schematic as modified, saving writes dirt, a stairs→stairs replace keeps
+  `facing`/`half`, and a slab→slab replace keeps top/bottom half — this session confirmed only
+  that the mod loads cleanly after both the feature and the fix above; the user should retry the
+  actual replace behavior now that the picker/replace granularity bug is fixed.
 ---
 
 ## Task: Polish and first release
