@@ -29,3 +29,4 @@ build.number
 .project
 .settings/
 bin/
+__pycache__/
