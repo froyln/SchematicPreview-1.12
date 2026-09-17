@@ -16,7 +16,7 @@ Reference material (read-only, outside the repo, re-clone if missing):
 
 Design (hook points with file:line, render pipeline, build files, risks): `docs/port-design.md`.
 Nothing is started. Tasks are ordered; each one is shippable on its own. Dependency graph:
-T1 → T2 → T3 → T4; T5 needs only T1; T6 last.
+T1 → T2 → T3 → T4; T5 needs only T1; T6 (save buttons) needs T5; T7 (release) last.
 
 ---
 
@@ -551,6 +551,79 @@ metadata as modified so Litematica's save prompt works.**
   `facing`/`half`, and a slab→slab replace keeps top/bottom half — this session confirmed only
   that the mod loads cleanly after both the feature and the fix above; the user should retry the
   actual replace behavior now that the picker/replace granularity bug is fixed.
+---
+
+## Task: Save / Save as buttons in the material list
+
+**Status:** in progress
+
+Finding (2026-09-16): "replace without loading" already works — Litematica's schematic browser
+has a `Material list` button (`SchematicBrowserScreen.createMaterialList`) that reads the file
+into a fresh `ISchematic` (not added to `SchematicHolder`, no placement) and opens
+`MaterialListScreen` over a `MaterialListSchematic`, where task 5's Replace rows already show.
+What is missing: a way to write the replaced result back to disk without loading/placing it.
+Add two buttons to `MaterialListScreen`, next to `Export`, for schematic-backed lists whose
+schematic has a file (`schematic.getFile() != null`):
+
+- `Save` — overwrite the source file after a `ConfirmActionScreen` (malilib) naming the file.
+  On success: `metadata.clearModifiedSinceSaved()`, `PreviewCache.invalidate(path)` (the
+  browser's cached preview for that path is now stale), success message.
+- `Save as` — `TextInputScreen` (malilib) pre-filled with `<stem>_replaced`, writes
+  `schematic.writeToFile(sourceDir, name, false)`; Litematica appends the extension and
+  refuses an existing name with its own error (the input screen stays open, return the
+  write result as the consumer's boolean). In-memory schematic keeps pointing at the
+  original file; modified flag untouched.
+
+The same screen class serves the Loaded Schematics → Material list flow, so the buttons appear
+there too (no way to tell the entry points apart, and overwriting a loaded schematic's file is
+the same operation). Placement-backed lists (`MaterialListPlacement`) are not covered — not
+asked for; add later by widening the `instanceof` gate if wanted.
+
+### Files to read
+
+- Litematica `gui/MaterialListScreen.java` (`reAddActiveWidgets`, `updateWidgetPositions`,
+  protected `exportButton`; second button row is at `this.y + 39`),
+  `schematic/ISchematic.java` (`writeToFile(Path dir, String name, boolean override)`,
+  `writeToFile(Path, boolean)` — shows its own `MessageDispatcher` errors),
+  `schematic/SchematicMetadata.java` (`clearModifiedSinceSaved`),
+  `gui/SchematicBrowserScreen.java` (`createMaterialList` — the existing entry point).
+- MaLiLib `gui/ConfirmActionScreen.java`, `gui/TextInputScreen.java`
+  (`ResultingStringConsumer` returns whether to close), `gui/SchematicVcsProjectManagerScreen`
+  for the confirm-screen usage pattern.
+- Ours: `mixin/MaterialListScreenMixin.java`, `materials/MaterialListAccessors.java`,
+  `render/PreviewCache.java`.
+
+### Steps
+
+1. `render/PreviewCache.invalidate(Path)`: close + remove the renderer and drop the schematic
+   future for that path (runs on the client thread, same as `close()`).
+2. `materials/SchematicSaver.java` (plain class, outside the mixin package — see AGENTS.md
+   Gotchas): `save(ISchematic)` opens the confirm screen (parent = current screen) and on
+   confirm does the overwrite + post-save steps above; `saveAs(ISchematic)` opens the text
+   input screen with the default name and writes with `override = false`.
+3. `mixin/MaterialListScreenMixin`: `@Shadow exportButton`; two mixin-owned `GenericButton`
+   fields created lazily; `@Inject(at = TAIL, remap = false)` into `reAddActiveWidgets`
+   (add both when `materialList instanceof MaterialListSchematic` and its schematic has a
+   file) and `updateWidgetPositions` (`save.setPosition(exportButton.getRight() + 2,
+   exportButton.getY())`, `saveAs` right of it). Clicks call `SchematicSaver`.
+4. `en_us.lang`: `schematicpreview.gui.save_schematic`, `.save_schematic_as`,
+   `.save_schematic.confirm_title`, `.save_schematic.confirm_message` (`%s` = file name),
+   `.save_schematic_as.title`, `schematicpreview.message.schematic_saved` (`%s` = path).
+5. `AGENTS.md`: add `SchematicSaver` to the tree and one sentence under Architecture → Replace.
+
+### Acceptance
+
+- Litematica browser → select a schematic → `Material list` → Replace stone with dirt →
+  `Save as` → default name `<name>_replaced`, confirm → new file appears in the browser on
+  return (browser refreshes on reopen), its preview shows dirt; original file unchanged.
+- Same flow → `Save` → confirm dialog → original file now contains dirt; the browser's
+  preview for it shows dirt (cache invalidated); no "modified" mark on a loaded copy.
+- `Save as` with an existing name shows Litematica's "exists" error and keeps the input open.
+- Buttons absent on area-analyzer and placement material lists and for schematics with no file.
+- `./gradlew build` exits 0.
+
+### Notes / findings
+
 ---
 
 ## Task: Polish and first release
