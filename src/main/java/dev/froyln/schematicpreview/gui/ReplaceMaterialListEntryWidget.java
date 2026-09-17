@@ -55,7 +55,8 @@ public class ReplaceMaterialListEntryWidget extends MaterialListEntryWidget
 
     private void openBlockSelect()
     {
-        Block oldBlock = Block.getBlockFromItem(this.data.getStack().getItem());
+        ItemStack oldStack = this.data.getStack();
+        Block oldBlock = Block.getBlockFromItem(oldStack.getItem());
 
         if (oldBlock == Blocks.AIR)
         {
@@ -63,12 +64,11 @@ public class ReplaceMaterialListEntryWidget extends MaterialListEntryWidget
             return;
         }
 
-        String oldName = new ItemStack(oldBlock).getDisplayName();
-        BaseScreen.openScreenWithParent(new BlockSelectScreen("schematicpreview.gui.replace_block.title", oldName,
-                (newBlock) -> this.replaceWith(oldBlock, newBlock)));
+        BaseScreen.openScreenWithParent(new BlockSelectScreen("schematicpreview.gui.replace_block.title",
+                oldStack.getDisplayName(), (newStack) -> this.replaceWith(oldStack, newStack)));
     }
 
-    private void replaceWith(Block oldBlock, Block newBlock)
+    private void replaceWith(ItemStack oldStack, ItemStack newStack)
     {
         ISchematic schematic;
         Collection<String> regionNames;
@@ -85,12 +85,13 @@ public class ReplaceMaterialListEntryWidget extends MaterialListEntryWidget
             regionNames = schematic.getRegionNames();
         }
 
-        long count = BlockReplacer.replace(oldBlock, newBlock, schematic, regionNames);
+        Block oldBlock = Block.getBlockFromItem(oldStack.getItem());
+        Block newBlock = Block.getBlockFromItem(newStack.getItem());
+        long count = BlockReplacer.replace(oldBlock, oldStack.getMetadata(), newBlock, newStack.getMetadata(), schematic, regionNames);
 
         this.materialList.reCreateMaterialList();
         this.listWidget.refreshEntries();
 
-        String newName = new ItemStack(newBlock).getDisplayName();
-        MessageDispatcher.success().translate("schematicpreview.gui.replace_block.result", count, newName);
+        MessageDispatcher.success().translate("schematicpreview.gui.replace_block.result", count, newStack.getDisplayName());
     }
 }

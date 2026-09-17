@@ -15,8 +15,16 @@ import fi.dy.masa.litematica.schematic.SchematicMetadata;
 import fi.dy.masa.litematica.schematic.container.ILitematicaBlockStateContainer;
 
 /**
- * Replaces every occurrence of a block, across the given regions of a schematic, with another
- * block, keeping whichever block-state properties the two blocks share.
+ * Replaces every occurrence of a block variant, across the given regions of a schematic, with
+ * another block variant, keeping whichever placement/orientation properties the old block had
+ * that don't belong to the new variant's own identity (e.g. a slab's top/bottom half survives,
+ * but its stone/quartz/etc. variant is fully replaced instead of merged with the old one).
+ * <p>
+ * Matching and identity are both expressed via {@link Block#damageDropped(IBlockState)} (the
+ * same "what item does this placed state require" mapping the material list itself is built
+ * from) rather than {@link Block#getMetaFromState(IBlockState)} directly, since several vanilla
+ * blocks - slabs being the obvious case - pack placement-only bits (top/bottom half) into the
+ * raw state metadata that never show up in the item's own damage value.
  */
 public final class BlockReplacer
 {
@@ -24,9 +32,10 @@ public final class BlockReplacer
     {
     }
 
-    public static long replace(Block oldBlock, Block newBlock, ISchematic schematic, Collection<String> regionNames)
+    public static long replace(Block oldBlock, int oldMeta, Block newBlock, int newMeta,
+                               ISchematic schematic, Collection<String> regionNames)
     {
-        IBlockState newDefault = newBlock.getDefaultState();
+        IBlockState newBase = newBlock.getStateFromMeta(newMeta);
         long count = 0;
 
         for (String regionName : regionNames)
@@ -49,9 +58,9 @@ public final class BlockReplacer
                     {
                         IBlockState state = container.getBlockState(x, y, z);
 
-                        if (state.getBlock() == oldBlock)
+                        if (state.getBlock() == oldBlock && oldBlock.damageDropped(state) == oldMeta)
                         {
-                            container.setBlockState(x, y, z, copyProperties(state, newDefault));
+                            container.setBlockState(x, y, z, buildReplacement(state, newBlock, newBase, newMeta));
                             ++count;
                         }
                     }
@@ -77,17 +86,27 @@ public final class BlockReplacer
         return count;
     }
 
-    private static IBlockState copyProperties(IBlockState from, IBlockState to)
+    private static IBlockState buildReplacement(IBlockState oldState, Block newBlock, IBlockState newBase, int newMeta)
     {
-        for (IProperty<?> property : from.getPropertyKeys())
+        IBlockState result = newBase;
+
+        for (IProperty<?> property : oldState.getPropertyKeys())
         {
-            if (to.getPropertyKeys().contains(property))
+            if (result.getPropertyKeys().contains(property))
             {
-                to = copyProperty(from, to, property);
+                IBlockState candidate = copyProperty(oldState, result, property);
+
+                // Only keep the old value if it doesn't change the new block's item identity -
+                // i.e. it's a placement/orientation property (like a slab's half), not one of
+                // the properties that make up the picked variant (like a slab's stone/quartz type).
+                if (newBlock.damageDropped(candidate) == newMeta)
+                {
+                    result = candidate;
+                }
             }
         }
 
-        return to;
+        return result;
     }
 
     private static <T extends Comparable<T>> IBlockState copyProperty(IBlockState from, IBlockState to, IProperty<T> property)

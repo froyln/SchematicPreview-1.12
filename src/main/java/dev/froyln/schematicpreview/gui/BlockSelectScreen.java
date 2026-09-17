@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import net.minecraft.block.Block;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.NonNullList;
 
 import fi.dy.masa.malilib.gui.BaseListScreen;
 import fi.dy.masa.malilib.gui.widget.ItemStackWidget;
@@ -16,14 +20,16 @@ import fi.dy.masa.malilib.gui.widget.list.entry.DataListEntryWidgetData;
 import fi.dy.masa.malilib.render.text.StyledTextLine;
 
 /**
- * Searchable {@code Block.REGISTRY} picker for the material list Replace button. Clicking a row
- * hands the block to the callback and returns to the parent screen.
+ * Searchable block-variant picker for the material list Replace button: every placeable
+ * {@code (Block, metadata)} combination (e.g. each slab type, each wool color) as its own row,
+ * not just one row per {@code Block} class. Clicking a row hands the exact variant stack to the
+ * callback and returns to the parent screen.
  */
-public class BlockSelectScreen extends BaseListScreen<DataListWidget<Block>>
+public class BlockSelectScreen extends BaseListScreen<DataListWidget<ItemStack>>
 {
-    private final Consumer<Block> callback;
+    private final Consumer<ItemStack> callback;
 
-    public BlockSelectScreen(String titleKey, Object titleArg, Consumer<Block> callback)
+    public BlockSelectScreen(String titleKey, Object titleArg, Consumer<ItemStack> callback)
     {
         super(10, 30, 20, 60);
 
@@ -32,49 +38,52 @@ public class BlockSelectScreen extends BaseListScreen<DataListWidget<Block>>
     }
 
     @Override
-    protected DataListWidget<Block> createListWidget()
+    protected DataListWidget<ItemStack> createListWidget()
     {
-        List<Block> blocks = new ArrayList<>();
+        List<ItemStack> stacks = new ArrayList<>();
+        NonNullList<ItemStack> subBlocks = NonNullList.create();
 
         for (Block block : Block.REGISTRY)
         {
-            blocks.add(block);
+            if (Item.getItemFromBlock(block) == Items.AIR)
+            {
+                continue;
+            }
+
+            subBlocks.clear();
+            block.getSubBlocks(CreativeTabs.SEARCH, subBlocks);
+            stacks.addAll(subBlocks);
         }
 
-        blocks.sort((a, b) -> displayName(a).compareToIgnoreCase(displayName(b)));
+        stacks.sort((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
 
-        DataListWidget<Block> listWidget = new DataListWidget<>(() -> blocks, false);
+        DataListWidget<ItemStack> listWidget = new DataListWidget<>(() -> stacks, false);
         listWidget.setListEntryWidgetFixedHeight(18);
         listWidget.addDefaultSearchBar();
-        listWidget.setEntryFilterStringFunction((block) -> Collections.singletonList(displayName(block)));
-        listWidget.setDataListEntryWidgetFactory((data, constructData) -> new BlockEntryWidget(data, constructData, this::onPick));
+        listWidget.setEntryFilterStringFunction((stack) -> Collections.singletonList(stack.getDisplayName()));
+        listWidget.setDataListEntryWidgetFactory((data, constructData) -> new StackEntryWidget(data, constructData, this::onPick));
 
         return listWidget;
     }
 
-    private void onPick(Block block)
+    private void onPick(ItemStack stack)
     {
-        this.callback.accept(block);
+        this.callback.accept(stack);
         this.openParentScreen();
     }
 
-    private static String displayName(Block block)
-    {
-        return new ItemStack(block).getDisplayName();
-    }
-
-    private static final class BlockEntryWidget extends BaseDataListEntryWidget<Block>
+    private static final class StackEntryWidget extends BaseDataListEntryWidget<ItemStack>
     {
         private final ItemStackWidget iconWidget;
-        private final Consumer<Block> onPick;
+        private final Consumer<ItemStack> onPick;
 
-        BlockEntryWidget(Block data, DataListEntryWidgetData constructData, Consumer<Block> onPick)
+        StackEntryWidget(ItemStack data, DataListEntryWidgetData constructData, Consumer<ItemStack> onPick)
         {
             super(data, constructData);
 
             this.onPick = onPick;
-            this.iconWidget = new ItemStackWidget(new ItemStack(data));
-            this.setText(StyledTextLine.of(displayName(data)));
+            this.iconWidget = new ItemStackWidget(data);
+            this.setText(StyledTextLine.of(data.getDisplayName()));
             this.getTextOffset().setXOffset(22);
         }
 
