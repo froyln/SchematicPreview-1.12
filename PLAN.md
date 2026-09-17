@@ -639,11 +639,20 @@ asked for; add later by widening the `instanceof` gate if wanted.
   `reAddActiveWidgets`/`updateWidgetPositions` add and position the two buttons; a `@Unique`
   private helper computes the savable `ISchematic` (or `null`) once per check, reusing
   `MaterialListAccessors.getSchematic` from task 5 rather than a new accessor.
-- **Not verified in-game this session** (no `runClient`/`tools/test-in-game.sh` run) — the
-  acceptance items above (Save/Save as flow, cache invalidation showing dirt, "exists" error
-  keeping the input open, buttons absent on area-analyzer/placement/no-file lists) still need a
-  real playtest. Whoever picks up task 7 (or the user, sooner) should run
-  `tools/test-in-game.sh` and confirm them before relying on this feature.
+- **Real in-game bug found by the user right after this landed, fixed in `ae3642b`**: the
+  Save confirm dialog rendered as a black box hanging off the bottom/right screen edges with
+  no buttons. Not our code and not the GUI scale (user tried) — malilib **0.54** (the test
+  instance's version; we compile against 0.53) resizes every popup to the window on open
+  unless a new `useWindowDimensions` flag is cleared, which its own `ConfirmActionScreen`/
+  `BaseTextInputScreen` never do. Diagnosed with a temporary tick-handler log of the live
+  screen (`280x80` after construction → `938x503` once open), then removed. Fix:
+  `gui/PopupScreenCompat.keepPopupSize()` clears the flag reflectively where it exists, applied
+  to the Save confirm, the Save-as input and task 4's `DirectoryIconEditScreen` (same base
+  class). Full story in AGENTS.md → Gotchas.
+- **Verified in-game by the user after the fix** ("now works perfect"): Save overwrite flow
+  works end to end on the 0.54 instance. Save-as, cache invalidation and the no-button gating
+  on area-analyzer/placement lists were not separately confirmed — should be spot-checked in
+  the task 7 fresh-profile test.
 
 ---
 
@@ -705,8 +714,8 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
   `PreviewCache.invalidate` wired into `MaterialListScreenMixin`, letting a schematic read
   straight from disk via `SchematicBrowserScreen`'s "Material list" button (no load, no
   placement) have its Replace edits written back without loading it. `./gradlew build` verified
-  green; reviewed with `/review` (verdict: ship, no findings); `runClient`/in-game check still
-  needed (same limitation as tasks 1-5).
+  green; reviewed with `/review` (verdict: ship, no findings); Save flow verified in-game by the
+  user after the malilib-0.54 popup fix `ae3642b` (`PopupScreenCompat`).
 
 ## Dropped / deferred
 
