@@ -717,6 +717,9 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
 ### Acceptance
 
 - `./gradlew build` exit 0 after every step.
+- Bug-hunt fixes (added after the audit, user-approved): a schematic over `previewMaxBlocks`
+  shows "Too large to preview" in the side panel, a spawner schematic leaves the GUI intact,
+  Replace chest→stone / stone→chest previews and saves correctly.
 - `tools/test-in-game.sh`: every acceptance item of tasks 2–7 still passes — list /
   list-preview / tile-5/4/3 row heights, side panel + fullscreen, screenshot file name keeps
   the schematic's casing, directory icon edit in all three positions, Replace + Save / Save as
