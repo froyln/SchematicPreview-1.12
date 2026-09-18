@@ -692,7 +692,7 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
 
 ## Task: Apply ponytail-audit cuts
 
-**Status:** in progress (branch `refactor/ponytail-audit`)
+**Status:** done (`6e3d2c0`, branch `refactor/ponytail-audit`)
 
 Pure deletions/refactors from a `/ponytail-audit` pass, each verified equivalent against
 malilib 0.53 bytecode (`javap` on the deobf jar) before being applied. **No UI, layout,
@@ -750,11 +750,19 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
   `/dev/null` (`d9ae533`); first-schematic-per-directory cached in `PreviewCache`, cleared on
   every browser list build so manager delete/rename can't leave a stale row (`1bc5b4f` + follow-up);
   icon store written on every change instead of on a screen-less tick (`30c149b`).
+- **Verified by the user in the `1.12.2 test ai` instance (2026-09-17, build installed via
+  `tools/test-in-game.sh`): "all looks good"** — refactor acceptance (no UI/behavior change)
+  and every bug-fix acceptance item above. Each round reviewed with `/review` (verdict: ship).
 
 ---
 
 ## Done
 
+- Apply ponytail-audit cuts — done (`6e3d2c0`), branch `refactor/ponytail-audit`: 16 audit
+  cuts (-134 lines, 0 deps) plus 8 bugs found in the follow-up hunt (side-panel memory cap,
+  TESR matrix-stack unwind, Replace tile-entity data, `enabled` gating, Replace for
+  item-placed blocks, `wl-copy` cleanup, first-schematic cache, immediate icon save).
+  Verified in-game by the user.
 - Bootstrap the LiteLoader mod skeleton — done (`83d7812`), buildable/loadable mod shell:
   LiteMod entry, malilib configs (Generic/Menu/Preview) + hotkey + config screen, empty tick
   handler. `./gradlew build` verified from a clean tree; `runClient` in-game check still
