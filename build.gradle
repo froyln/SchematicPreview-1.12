@@ -156,30 +156,6 @@ mixin {
     defaultObfuscationEnv notch
 }
 
-processResources
-{
-    // Exclude the GIMP image files
-    exclude '**/*.xcf'
-    exclude '**/xcf'
-
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "mod_version", project.minecraft.mod_version
-    inputs.property "minecraft_version", project.config.minecraft_version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-
-        // replace version and mcversion
-        expand 'mod_version': project.minecraft.mod_version, 'minecraft_version': project.config.minecraft_version
-    }
-
-    // copy everything else, that's not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
-}
-
 // The LiteLoader plugin also puts the raw (still notch-obfuscated) litemod from libs/
 // directly on the compile classpath, ahead of our remapped jar - javac then resolves
 // Litematica's classes from that raw entry first. Runs in afterEvaluate so it applies
