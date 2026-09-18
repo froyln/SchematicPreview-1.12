@@ -208,7 +208,10 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   file is NOT overwritten until the user changes an icon.
 - **Preview volume cap:** `previewMaxVolume` (default 125 000 blocks) gates list/tile previews;
   the side panel and fullscreen preview ignore it but tessellate incrementally so a huge
-  schematic cannot freeze the client for seconds.
+  schematic cannot freeze the client for seconds. They have their own cap, `previewMaxBlocks`
+  (default 1 000 000 non-air blocks, from `SchematicMetadata.totalBlocks`): every block's
+  geometry sits in direct-memory `BufferBuilder`s until upload, so without it a multi-million
+  block build could throw `OutOfMemoryError: Direct buffer memory` on selection.
 - **GL resources:** every `Framebuffer`/`VertexBuffer` created has an owner that deletes it
   (`PreviewCache.close()`), otherwise VRAM leaks across screen opens.
 - **External process:** `ScreenshotUtil.copyToClipboard` spawns `wl-copy --type image/png` on

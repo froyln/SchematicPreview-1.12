@@ -45,8 +45,8 @@ public class PreviewRenderer
     private List<BlockPos> tileEntityPositions;
     private final Set<Class<?>> tileEntityBlacklist = new HashSet<>();
 
-    private int cursor;
-    private int totalVolume;
+    private long cursor;
+    private long totalVolume;
     private boolean tessellationDone;
 
     private final EnumMap<BlockRenderLayer, BufferBuilder> buildingBuffers = new EnumMap<>(BlockRenderLayer.class);
@@ -58,7 +58,7 @@ public class PreviewRenderer
         this.access = new SchematicBlockAccess(schematic);
         this.tileEntityPositions = this.access.getTileEntityPositions();
         Vec3i size = this.access.getBoxSize();
-        this.totalVolume = size.getX() * size.getY() * size.getZ();
+        this.totalVolume = (long) size.getX() * size.getY() * size.getZ();
         this.cursor = 0;
         this.tessellationDone = this.totalVolume <= 0;
     }
@@ -114,15 +114,15 @@ public class PreviewRenderer
         BlockPos boxMin = this.access.getBoxMin();
         int sizeX = size.getX();
         int sizeY = size.getY();
-        int limit = Math.min(this.totalVolume, this.cursor + TESSELLATE_BUDGET_PER_TICK);
+        long limit = Math.min(this.totalVolume, this.cursor + TESSELLATE_BUDGET_PER_TICK);
 
         for (; this.cursor < limit; this.cursor++)
         {
-            int index = this.cursor;
-            int x = index % sizeX;
+            long index = this.cursor;
+            int x = (int) (index % sizeX);
             index /= sizeX;
-            int y = index % sizeY;
-            int z = index / sizeY;
+            int y = (int) (index % sizeY);
+            int z = (int) (index / sizeY);
 
             BlockPos pos = boxMin.add(x, y, z);
             IBlockState state = this.access.getBlockState(pos);

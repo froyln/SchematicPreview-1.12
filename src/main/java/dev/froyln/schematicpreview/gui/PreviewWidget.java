@@ -23,6 +23,7 @@ import dev.froyln.schematicpreview.render.PreviewCache;
 import dev.froyln.schematicpreview.render.PreviewRenderer;
 import dev.froyln.schematicpreview.render.PreviewRenderUtils;
 import fi.dy.masa.litematica.schematic.ISchematic;
+import fi.dy.masa.litematica.schematic.SchematicMetadata;
 
 /**
  * Live 3D render of a schematic, tessellated and cached by {@link PreviewCache}. Each instance
@@ -202,6 +203,18 @@ public class PreviewWidget extends InteractableWidget
         if (schematic == null)
         {
             PreviewRenderUtils.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.invalid", ctx);
+            return;
+        }
+
+        // Unlike the list/tile previews this ignores previewMaxVolume, but the tessellated
+        // geometry of every non-air block sits in direct memory until upload - a multi-million
+        // block build would run the JVM out of direct buffer memory the moment it's selected.
+        SchematicMetadata meta = schematic.getMetadata();
+        long blocks = meta.getTotalBlocks() >= 0 ? meta.getTotalBlocks() : meta.getTotalVolume();
+
+        if (blocks > Configs.Preview.PREVIEW_MAX_BLOCKS.getIntegerValue())
+        {
+            PreviewRenderUtils.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.too_large", ctx);
             return;
         }
 

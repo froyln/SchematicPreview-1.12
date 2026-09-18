@@ -46,6 +46,7 @@ public class Configs
     public static class Preview
     {
         public static final IntegerConfig PREVIEW_MAX_VOLUME = new IntegerConfig("previewMaxVolume", 125000, 0, Integer.MAX_VALUE, "schematicpreview.config.comment.previewMaxVolume");
+        public static final IntegerConfig PREVIEW_MAX_BLOCKS = new IntegerConfig("previewMaxBlocks", 1000000, 1000, Integer.MAX_VALUE, "schematicpreview.config.comment.previewMaxBlocks");
         public static final BooleanConfig RENDER_TILE_ENTITIES = new BooleanConfig("renderTileEntities", true, "schematicpreview.config.comment.renderTileEntities");
         public static final DoubleConfig PREVIEW_FOV = new DoubleConfig("previewFov", 50.0, 30.0, 100.0, "schematicpreview.config.comment.previewFov");
         public static final DoubleConfig PREVIEW_ROTATION_Y = new DoubleConfig("previewRotationY", 45.0, -180.0, 180.0, "schematicpreview.config.comment.previewRotationY");
@@ -53,6 +54,7 @@ public class Configs
 
         public static final ImmutableList<ConfigOption<?>> OPTIONS = ImmutableList.of(
                 PREVIEW_MAX_VOLUME,
+                PREVIEW_MAX_BLOCKS,
                 RENDER_TILE_ENTITIES,
                 PREVIEW_FOV,
                 PREVIEW_ROTATION_Y,
