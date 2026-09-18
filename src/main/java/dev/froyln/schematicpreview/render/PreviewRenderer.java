@@ -43,7 +43,9 @@ public class PreviewRenderer
 
     private SchematicBlockAccess access;
     private List<BlockPos> tileEntityPositions;
-    private final Set<Class<?>> tileEntityBlacklist = new HashSet<>();
+    // Renderer classes that threw once. Static: the failure is a property of the renderer
+    // (typically "needs a World", which these TEs never have), not of one schematic.
+    private static final Set<Class<?>> TILE_ENTITY_BLACKLIST = new HashSet<>();
 
     private long cursor;
     private long totalVolume;
@@ -431,10 +433,12 @@ public class PreviewRenderer
         {
             TileEntity te = this.access.getTileEntity(pos);
 
-            if (te == null || this.tileEntityBlacklist.contains(te.getClass()))
+            if (te == null || TILE_ENTITY_BLACKLIST.contains(te.getClass()))
             {
                 continue;
             }
+
+            int stackDepth = GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH);
 
             try
             {
@@ -442,7 +446,18 @@ public class PreviewRenderer
             }
             catch (Throwable t)
             {
-                this.tileEntityBlacklist.add(te.getClass());
+                TILE_ENTITY_BLACKLIST.add(te.getClass());
+
+                // A renderer that throws mid-way (mob spawner: pushMatrix, then the entity
+                // renderer's pushMatrix, then NPE on the missing world) leaves its pushes on
+                // the stack; the pops at the end of draw() would then pop those instead of
+                // ours and the rest of the GUI frame renders through the 3D camera matrix.
+                GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+
+                while (GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH) > stackDepth)
+                {
+                    GlStateManager.popMatrix();
+                }
             }
         }
     }
