@@ -690,6 +690,50 @@ real LiteLoader 1.12.2 profile with Litematica 0.31.4 + MaLiLib 0.53.0.
 
 ---
 
+## Task: Apply ponytail-audit cuts
+
+**Status:** in progress (branch `refactor/ponytail-audit`)
+
+Pure deletions/refactors from a `/ponytail-audit` pass, each verified equivalent against
+malilib 0.53 bytecode (`javap` on the deobf jar) before being applied. **No UI, layout,
+file-name or feature change is allowed** — that is the acceptance bar, not "less code".
+
+### Steps (one commit each, `./gradlew build` between)
+
+1. Dead code: `Generic.HOTKEYS`, `PreviewType.isList()`, `PreviewWidget.setPath`/`fboScale`,
+   unreachable `renderer == null` guards, default `Redirect.PIPE` — `65f43f9`.
+2. Fold `SchematicPreviewTickHandler` (lambda; `ClientTickHandler`'s other two methods are
+   defaults) and `SchematicPreviewHotkeyProvider` (anonymous class) into `InitHandler`;
+   drop `ConfigScreen.getConfigTabs()` wrapper — `9a1279c`.
+3. `FileNameUtils.getFileNameWithoutExtension` / `getDateTimeString` (same
+   `yyyy-MM-dd_HH-mm-ss` pattern) in `ScreenshotUtil.save` and `SchematicSaver.saveAs` —
+   `3cbbb1c`.
+4. Shrinks: mixin list-height ternary → `type.getHeight(0)`, single `PreviewRenderer.draw`,
+   inline thread factory, one `DirectoryIconStore.tickSave`, `previewBox()` helper in the
+   entry widget, plain method names in `PreviewFullscreenScreen` — `0d59242`.
+5. `build.gradle`: drop the Forge-template `processResources` block (no `mcmod.info`/`.xcf`
+   exist); litemod resource entries diffed identical — `682bb3b`.
+
+### Acceptance
+
+- `./gradlew build` exit 0 after every step.
+- `tools/test-in-game.sh`: every acceptance item of tasks 2–7 still passes — list /
+  list-preview / tile-5/4/3 row heights, side panel + fullscreen, screenshot file name keeps
+  the schematic's casing, directory icon edit in all three positions, Replace + Save / Save as
+  popups sized correctly, config screen tabs, no GL/lighting leak after closing screens.
+
+### Notes / findings
+
+- **Rejected on inspection, do not re-propose:**
+  - `src/main/resources/litemod.json` looks redundant next to the `litemod{}` DSL but is the
+    same static stub malilib's own jar ships — LiteLoader in dev (`runClient`) reads
+    `mixinConfigs` from it on the classpath; the DSL output only lands in the packed litemod.
+  - `FileNameUtils.generateSimpleSafeFileName` for the screenshot name: it lowercases
+    (`[^a-z0-9_.-]`), so `MyFarm` would become `myfarm`. Own `replaceAll` kept.
+- Net -110 lines, 0 dependency changes.
+
+---
+
 ## Done
 
 - Bootstrap the LiteLoader mod skeleton — done (`83d7812`), buildable/loadable mod shell:
