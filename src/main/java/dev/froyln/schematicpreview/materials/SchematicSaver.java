@@ -79,6 +79,7 @@ public final class SchematicSaver
 
         if (success)
         {
+            PreviewCache.invalidateDirectory(dir);
             MessageDispatcher.success().translate("schematicpreview.message.schematic_saved", name);
         }
 

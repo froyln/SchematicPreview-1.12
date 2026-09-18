@@ -1,8 +1,13 @@
 package dev.froyln.schematicpreview.render;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -34,6 +39,10 @@ public final class PreviewCache
 
     private static final Map<Path, CompletableFuture<ISchematic>> SCHEMATICS = new HashMap<>();
     private static final Map<Path, PreviewRenderer> RENDERERS = new HashMap<>();
+    // Directory -> its first schematic file (Optional.empty() when it has none). malilib
+    // rebuilds every entry widget on each scroll/refresh, so without this the browser did a
+    // Files.list per directory row per rebuild.
+    private static final Map<Path, Optional<Path>> FIRST_SCHEMATICS = new HashMap<>();
 
     // Shared by every list/tile row preview - never one Framebuffer per row (see AGENTS.md
     // security invariants: small widgets share one FBO and render sequentially).
@@ -79,6 +88,25 @@ public final class PreviewCache
             renderer.setup(schematic);
             return renderer;
         });
+    }
+
+    /**
+     * First regular file in {@code directory} (sorted by path) accepted by {@code filter}, or
+     * {@code null}; cached until {@link #close()}.
+     */
+    @Nullable
+    public static Path getFirstSchematicIn(Path directory, Predicate<Path> filter)
+    {
+        return FIRST_SCHEMATICS.computeIfAbsent(directory, dir -> {
+            try (Stream<Path> stream = Files.list(dir))
+            {
+                return stream.filter(Files::isRegularFile).filter(filter).sorted().findFirst();
+            }
+            catch (IOException ignore)
+            {
+                return Optional.empty();
+            }
+        }).orElse(null);
     }
 
     /**
@@ -166,7 +194,8 @@ public final class PreviewCache
 
     public static void tickClose()
     {
-        boolean hasState = SCHEMATICS.isEmpty() == false || RENDERERS.isEmpty() == false || smallFbo != null;
+        boolean hasState = SCHEMATICS.isEmpty() == false || RENDERERS.isEmpty() == false ||
+                           FIRST_SCHEMATICS.isEmpty() == false || smallFbo != null;
 
         if (Minecraft.getMinecraft().currentScreen == null && hasState)
         {
@@ -183,6 +212,7 @@ public final class PreviewCache
     public static void invalidate(Path file)
     {
         SCHEMATICS.remove(file);
+        invalidateDirectory(file.getParent());
 
         PreviewRenderer renderer = RENDERERS.remove(file);
 
@@ -190,6 +220,12 @@ public final class PreviewCache
         {
             renderer.close();
         }
+    }
+
+    /** Forgets which file is first in {@code directory}, e.g. after a new file was written into it. */
+    public static void invalidateDirectory(@Nullable Path directory)
+    {
+        FIRST_SCHEMATICS.remove(directory);
     }
 
     public static void close()
@@ -201,6 +237,7 @@ public final class PreviewCache
 
         RENDERERS.clear();
         SCHEMATICS.clear();
+        FIRST_SCHEMATICS.clear();
 
         if (smallFbo != null)
         {

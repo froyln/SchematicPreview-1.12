@@ -1,9 +1,6 @@
 package dev.froyln.schematicpreview.gui;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import net.minecraft.item.Item;
@@ -59,7 +56,7 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
         boolean wantsSchematicVisual = previewType.hasPreview() &&
                 (this.iconEntry == null || this.iconEntry.position == IconPosition.DEFAULT_WITH_SCHEMATIC);
         this.firstSchematicInDir = (this.entryType == DirectoryEntryType.DIRECTORY && wantsSchematicVisual)
-                ? findFirstSchematic(entry.getFullPath(), fileBrowserWidget) : null;
+                ? PreviewCache.getFirstSchematicIn(entry.getFullPath(), BrowserWidgetAccessors.getFileFilter(fileBrowserWidget)) : null;
 
         boolean directoryBigIcon = this.iconEntry != null && this.iconEntry.position == IconPosition.CENTER;
         boolean directorySchematicVisual = this.entryType == DirectoryEntryType.DIRECTORY &&
@@ -89,23 +86,6 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
                 int previewSize = this.getHeight() - PREVIEW_PADDING * 2;
                 this.textOffset.setXOffset(previewSize + PREVIEW_PADDING + 3);
             }
-        }
-    }
-
-    @Nullable
-    private static Path findFirstSchematic(Path directory, BaseFileBrowserWidget fileBrowserWidget)
-    {
-        try (Stream<Path> stream = Files.list(directory))
-        {
-            return stream.filter(Files::isRegularFile)
-                          .filter(BrowserWidgetAccessors.getFileFilter(fileBrowserWidget))
-                          .sorted()
-                          .findFirst()
-                          .orElse(null);
-        }
-        catch (IOException ignore)
-        {
-            return null;
         }
     }
 
