@@ -731,6 +731,16 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
   - `FileNameUtils.generateSimpleSafeFileName` for the screenshot name: it lowercases
     (`[^a-z0-9_.-]`), so `MyFarm` would become `myfarm`. Own `replaceAll` kept.
 - Net -110 lines, 0 dependency changes.
+- Bug hunt afterwards (whole tree, before in-game testing) — fixed on the same branch:
+  `previewMaxBlocks` cap so the side panel can't OOM direct memory on multi-million block
+  builds (`e06b421`); modelview stack unwind + static blacklist when a TESR throws (mob
+  spawners NPE on the null world after two pushes, which broke the rest of the GUI frame)
+  (`e3177a7`); Replace now drops/creates tile-entity NBT and pending ticks at changed
+  positions. Found but **not** fixed (user's call, see session notes): `Generic.enabled` only
+  gates the side panel; Replace can't target item-placed blocks (doors, redstone dust,
+  repeaters...) since `MaterialListEntry` only carries the ItemStack; `wl-copy` process not
+  destroyed on timeout; `Files.list` per directory row per widget rebuild; icon store only
+  saved once no screen is open.
 
 ---
 

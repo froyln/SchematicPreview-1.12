@@ -2,10 +2,16 @@ package dev.froyln.schematicpreview.materials;
 
 import java.util.Collection;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.block.Block;
+import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 
 import fi.dy.masa.litematica.data.DataManager;
@@ -62,6 +68,11 @@ public final class BlockReplacer
                         {
                             container.setBlockState(x, y, z, buildReplacement(state, newBlock, newBase, newMeta));
                             ++count;
+
+                            if (newBlock != oldBlock)
+                            {
+                                replaceBlockEntityData(region, new BlockPos(x, y, z), newBlock, newMeta);
+                            }
                         }
                     }
                 }
@@ -84,6 +95,55 @@ public final class BlockReplacer
         }
 
         return count;
+    }
+
+    /**
+     * The old block's tile entity NBT and pending tick must not survive a change of block:
+     * a chest's NBT left under a stone block makes the preview draw a chest lid over it and
+     * the saved file carry dead data. A new tile-entity block gets a fresh default tag
+     * (position in region-local coordinates, same convention as Litematica's own map), so
+     * TESR-only blocks like chests don't come out invisible in the preview.
+     */
+    private static void replaceBlockEntityData(ISchematicRegion region, BlockPos pos, Block newBlock, int newMeta)
+    {
+        region.getBlockTickMap().remove(pos);
+
+        NBTTagCompound nbt = createDefaultTileEntityNbt(newBlock, newMeta, pos);
+
+        if (nbt != null)
+        {
+            region.getBlockEntityMap().put(pos, nbt);
+        }
+        else
+        {
+            region.getBlockEntityMap().remove(pos);
+        }
+    }
+
+    @Nullable
+    private static NBTTagCompound createDefaultTileEntityNbt(Block block, int meta, BlockPos pos)
+    {
+        if ((block instanceof ITileEntityProvider) == false)
+        {
+            return null;
+        }
+
+        try
+        {
+            TileEntity te = ((ITileEntityProvider) block).createNewTileEntity(null, meta);
+
+            if (te == null)
+            {
+                return null;
+            }
+
+            te.setPos(pos);
+            return te.writeToNBT(new NBTTagCompound());
+        }
+        catch (Throwable t)
+        {
+            return null;
+        }
     }
 
     private static IBlockState buildReplacement(IBlockState oldState, Block newBlock, IBlockState newBase, int newMeta)

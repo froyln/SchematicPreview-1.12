@@ -177,7 +177,10 @@ the private `schematic`/`regions`/`placement` fields. `BlockReplacer` iterates e
 container (`getBlockState`/`setBlockState`), copies properties both blocks share, fixes
 `SchematicMetadata.totalBlocks` for air↔non-air, `setTimeModifiedToNow()`,
 `setModifiedSinceSaved()`, then marks all placements of that schematic for chunk rebuild via
-`DataManager.getSchematicPlacementManager()`. Save: the same mixin adds Save/Save as buttons
+`DataManager.getSchematicPlacementManager()`. When the block itself changes it also drops the
+position's tile-entity NBT and pending tick from the region maps (else a chest's NBT lingers
+under the stone that replaced it) and, for an `ITileEntityProvider` replacement, stores a
+fresh default tag — TESR-only blocks like chests are invisible in the preview without one. Save: the same mixin adds Save/Save as buttons
 next to `MaterialListScreen`'s Export button, for `MaterialListSchematic` lists whose schematic
 has a file — covers `SchematicBrowserScreen`'s "Material list" button, which reads a schematic
 straight from disk with no load/placement, so Replace edits there had no way back to disk;
