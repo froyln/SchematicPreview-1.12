@@ -25,9 +25,4 @@ public class ConfigScreen
         return new BaseConfigScreen(Reference.MOD_INFO, CONFIG_TABS, GENERIC,
                 "schematicpreview.config", Reference.MOD_VERSION);
     }
-
-    public static ImmutableList<ConfigTab> getConfigTabs()
-    {
-        return CONFIG_TABS;
-    }
 }
