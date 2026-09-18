@@ -756,6 +756,48 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
 
 ---
 
+## Task: "Open schematics folder" button on Litematica's main menu
+
+**Status:** done (branch `feat/open-schematics-folder`)
+
+One button on `MainMenuScreen`, labelled "Open schematics folder", that opens
+`DataManager.getSchematicsBaseDirectory()` in the OS file manager. Gated on `Generic.enabled`
+like every other addon element.
+
+### Design (verified with `javap` on the remapped 0.31.4 jar)
+
+- `MainMenuScreen.reAddActiveWidgets()` runs an equal-width pass over its own buttons;
+  `updateWidgetPositions()` lays out two columns and leaves `(right column, y+52)` — directly
+  under "Configuration menu" — empty. TAIL injections on both: size the button to
+  `configScreenButton.getWidth()`, position it at `configScreenButton.getY() + 22`.
+- Opening reuses vanilla `OpenGlHelper.openFile(File)` (resource-pack screen's "Open folder");
+  no platform code of our own, no new dependency. Icon: malilib `DefaultIcons.FILE_BROWSER_DIR`.
+
+### Steps
+
+1. `mixin/MainMenuScreenMixin.java` + `mixins.schematicpreview.json` entry + `en_us.lang`
+   `schematicpreview.button.open_schematics_folder`.
+2. `AGENTS.md`: project structure, architecture paragraph, external-process invariant.
+
+### Acceptance
+
+- `./gradlew build` exit 0.
+- `tools/test-in-game.sh`, Litematica main menu: button under "Configuration menu", same width
+  as the others, label not clipped; click opens the file manager at `minecraft/schematics/` and
+  the game keeps running with no exception logged; `enabled=false` removes the button; no mixin
+  error at launch.
+
+### Notes / findings
+
+- `./gradlew build` exit 0. `/review` verdict: ship; its one note was that the label plus the
+  folder icon is within a few px of the equal button width — if it ever clips, drop the icon
+  (`GenericButton.create(String)`) rather than widen the column.
+- Installed into the `1.12.2 test ai` instance via `tools/test-in-game.sh` on 2026-09-17; the
+  user then asked for the push and README entry with no issues reported.
+- README gained a feature bullet and a usage line.
+
+---
+
 ## Done
 
 - Apply ponytail-audit cuts — done (`6e3d2c0`), branch `refactor/ponytail-audit`: 16 audit

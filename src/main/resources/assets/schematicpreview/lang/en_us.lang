@@ -42,6 +42,7 @@ schematicpreview.button.freecam=Freecam
 schematicpreview.button.preview_type=Change preview type
 schematicpreview.button.save_screenshot=Save preview as PNG
 schematicpreview.button.copy_screenshot=Copy preview image
+schematicpreview.button.open_schematics_folder=Open schematics folder
 schematicpreview.message.screenshot_saved=Saved preview to %s
 schematicpreview.message.screenshot_failed=Failed to save preview screenshot
 schematicpreview.message.image_copied=Copied preview image to clipboard

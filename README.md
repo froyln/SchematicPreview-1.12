@@ -13,6 +13,8 @@ re-implemented from scratch:
 
 - **Save / Save as** in the material list — write a schematic edited with Replace back to
   disk (overwrite or new file) without loading or placing it first.
+- **Open schematics folder** button in Litematica's main menu — opens the schematics
+  directory in your file manager.
 
 ## Screenshots
 
@@ -45,6 +47,8 @@ re-implemented from scratch:
   **Replace** on a row, pick a block. Keeps orientation properties the two blocks share.
 - **Save / Save as:** in a schematic-backed material list, next to *Export*. *Save* overwrites
   the file after a confirmation; *Save as* asks for a name and never overwrites.
+- **Open schematics folder:** in Litematica's main menu, under *Configuration menu*. Opens
+  the folder Litematica loads schematics from (`schematics/` in the game directory).
 
 Task history and design notes: `PLAN.md`, `AGENTS.md`, `docs/port-design.md`.
 

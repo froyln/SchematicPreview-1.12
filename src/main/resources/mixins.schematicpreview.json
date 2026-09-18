@@ -11,7 +11,8 @@
 		"BaseListWidgetAccessor",
 		"MaterialListScreenMixin",
 		"MaterialListSchematicAccessor",
-		"MaterialListPlacementAccessor"
+		"MaterialListPlacementAccessor",
+		"MainMenuScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
