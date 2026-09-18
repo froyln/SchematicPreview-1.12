@@ -84,17 +84,6 @@ Litematica LiteLoader isn't published to a Maven repo, hence the script — it d
 Litematica from source (`maruohon/litematica`, branch `liteloader_1.12.2`, commit `1db931a6`)
 and publish it to your local Maven.
 
-## Working with Claude Code
-
-This repo uses the ClaudeNewProject template: `CLAUDE.md` (working agreement + canary word),
-`AGENTS.md` (project facts, source of truth), `PLAN.md` (one task `in progress` at a time),
-`.claude/rules/`, skills `/plan-task` `/finish-task` `/review` `/commit` `/sync-docs`, and
-hooks that block destructive commands and warn when context degrades. Hooks need `jq`.
-
-Optional per-machine files: copy `CLAUDE.local.md.example` → `CLAUDE.local.md` and
-`.claude/settings.local.json.example` → `.claude/settings.local.json`
-(set `CLAUDE_VERIFY_ON_STOP=1` there to have every turn end with a passing `./gradlew build`).
-
 ## License
 
 [LGPL-3.0](LICENSE), same as Litematica and MaLiLib. This is a clean-room reimplementation:
