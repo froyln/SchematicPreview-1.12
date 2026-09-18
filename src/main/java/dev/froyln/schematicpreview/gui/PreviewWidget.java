@@ -34,9 +34,8 @@ public class PreviewWidget extends InteractableWidget
     private static final int BUTTON_SIZE = 12;
     private static final double MIN_DISTANCE = 1.5;
 
-    private Path path;
+    private final Path path;
     @Nullable private Framebuffer fbo;
-    private int fboScale;
 
     private boolean cameraInitialized;
     private float yRot;
@@ -64,16 +63,7 @@ public class PreviewWidget extends InteractableWidget
     {
         super(x, y, width, height);
 
-        this.setPath(path);
-    }
-
-    public void setPath(Path path)
-    {
-        if (path.equals(this.path) == false)
-        {
-            this.path = path;
-            this.cameraInitialized = false;
-        }
+        this.path = path;
     }
 
     private void openFullscreen()
@@ -217,11 +207,6 @@ public class PreviewWidget extends InteractableWidget
 
         PreviewRenderer renderer = PreviewCache.getRenderer(this.path, schematic);
 
-        if (renderer == null)
-        {
-            return;
-        }
-
         if (this.cameraInitialized == false)
         {
             Vec3d center = renderer.getCenter();
@@ -281,7 +266,7 @@ public class PreviewWidget extends InteractableWidget
         int texWidth = Math.max(1, width * scale);
         int texHeight = Math.max(1, height * scale);
 
-        if (this.fbo == null || this.fboScale != scale || this.fbo.framebufferWidth != texWidth || this.fbo.framebufferHeight != texHeight)
+        if (this.fbo == null || this.fbo.framebufferWidth != texWidth || this.fbo.framebufferHeight != texHeight)
         {
             if (this.fbo != null)
             {
@@ -290,7 +275,6 @@ public class PreviewWidget extends InteractableWidget
 
             this.fbo = new Framebuffer(texWidth, texHeight, true);
             this.fbo.setFramebufferFilter(GL11.GL_NEAREST);
-            this.fboScale = scale;
         }
 
         this.fbo.bindFramebuffer(true);

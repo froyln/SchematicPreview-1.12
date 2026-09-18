@@ -31,11 +31,6 @@ public enum PreviewType implements OptionListConfigValue
         return this.widthToHeight.applyAsInt(width);
     }
 
-    public boolean isList()
-    {
-        return this == LIST || this == LIST_PREVIEW;
-    }
-
     public boolean isTile()
     {
         return this == TILE_5 || this == TILE_4 || this == TILE_3;

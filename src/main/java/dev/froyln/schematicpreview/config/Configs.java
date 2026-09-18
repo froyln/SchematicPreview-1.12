@@ -21,10 +21,6 @@ public class Configs
                 ENABLED,
                 OPEN_CONFIG_SCREEN
         );
-
-        public static final ImmutableList<HotkeyConfig> HOTKEYS = ImmutableList.of(
-                OPEN_CONFIG_SCREEN
-        );
     }
 
     public static class Menu

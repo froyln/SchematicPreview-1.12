@@ -67,7 +67,6 @@ public final class PreviewCache
         }, LOADER);
     }
 
-    @Nullable
     public static PreviewRenderer getRenderer(Path file, ISchematic schematic)
     {
         return RENDERERS.computeIfAbsent(file, p -> {
@@ -110,11 +109,6 @@ public final class PreviewCache
         }
 
         PreviewRenderer renderer = getRenderer(file, schematic);
-
-        if (renderer == null)
-        {
-            return false;
-        }
 
         renderer.tick();
 

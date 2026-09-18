@@ -103,7 +103,6 @@ public final class ScreenshotUtil
 
             Process process = new ProcessBuilder("wl-copy", "--type", "image/png")
                     .redirectErrorStream(true)
-                    .redirectOutput(ProcessBuilder.Redirect.PIPE)
                     .start();
 
             try (OutputStream stdin = process.getOutputStream())
