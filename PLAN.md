@@ -758,7 +758,7 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
 
 ## Task: "Open schematics folder" button on Litematica's main menu
 
-**Status:** done (branch `feat/open-schematics-folder`)
+**Status:** done (`9ad5854`, branch `feat/open-schematics-folder`)
 
 One button on `MainMenuScreen`, labelled "Open schematics folder", that opens
 `DataManager.getSchematicsBaseDirectory()` in the OS file manager. Gated on `Generic.enabled`
