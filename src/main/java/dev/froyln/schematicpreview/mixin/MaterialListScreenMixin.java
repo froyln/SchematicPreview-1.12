@@ -20,6 +20,7 @@ import fi.dy.masa.malilib.gui.BaseScreen;
 import fi.dy.masa.malilib.gui.widget.button.GenericButton;
 import fi.dy.masa.malilib.gui.widget.list.DataListWidget;
 
+import dev.froyln.schematicpreview.config.Configs;
 import dev.froyln.schematicpreview.gui.ReplaceMaterialListEntryWidget;
 import dev.froyln.schematicpreview.materials.MaterialListAccessors;
 import dev.froyln.schematicpreview.materials.SchematicSaver;
@@ -48,7 +49,8 @@ public abstract class MaterialListScreenMixin extends BaseScreen
     {
         MaterialListBase materialList = this.materialList;
 
-        if (materialList instanceof MaterialListSchematic || materialList instanceof MaterialListPlacement)
+        if (Configs.Generic.ENABLED.getBooleanValue() &&
+            (materialList instanceof MaterialListSchematic || materialList instanceof MaterialListPlacement))
         {
             cir.getReturnValue().setDataListEntryWidgetFactory(
                     (data, constructData) -> new ReplaceMaterialListEntryWidget(data, constructData, materialList));
@@ -97,7 +99,7 @@ public abstract class MaterialListScreenMixin extends BaseScreen
     @Nullable
     private ISchematic schematicpreview$savableSchematic()
     {
-        if ((this.materialList instanceof MaterialListSchematic) == false)
+        if (Configs.Generic.ENABLED.getBooleanValue() == false || (this.materialList instanceof MaterialListSchematic) == false)
         {
             return null;
         }

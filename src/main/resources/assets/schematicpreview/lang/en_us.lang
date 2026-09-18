@@ -19,7 +19,7 @@ schematicpreview.config.name.previewfov=Preview FOV
 schematicpreview.config.name.previewrotationy=Preview rotation Y
 schematicpreview.config.name.previewrotationx=Preview rotation X
 
-schematicpreview.config.comment.enabled=Toggle mod enabled
+schematicpreview.config.comment.enabled=Toggle mod enabled (takes effect when a screen is next opened)
 schematicpreview.config.comment.previewType=Selected browser entry type
 schematicpreview.config.comment.entryGapX=Browser entry X axis gap
 schematicpreview.config.comment.entryGapY=Browser entry Y axis gap

@@ -41,6 +41,11 @@ public abstract class BaseSchematicBrowserScreenMixin
     @Inject(method = "createListWidget", at = @At("RETURN"), remap = false)
     private void schematicpreview$installPreviewEntries(CallbackInfoReturnable<BaseFileBrowserWidget> cir)
     {
+        if (Configs.Generic.ENABLED.getBooleanValue() == false)
+        {
+            return;
+        }
+
         BaseFileBrowserWidget listWidget = cir.getReturnValue();
         BrowserWidgetAccessors.setAreEntriesFixedHeight(listWidget, false);
 
