@@ -8,6 +8,7 @@ import fi.dy.masa.malilib.gui.BaseScreen;
 import fi.dy.masa.malilib.gui.ConfirmActionScreen;
 import fi.dy.masa.malilib.gui.TextInputScreen;
 import fi.dy.masa.malilib.gui.util.GuiUtils;
+import fi.dy.masa.malilib.util.FileNameUtils;
 import fi.dy.masa.malilib.overlay.message.MessageDispatcher;
 
 import dev.froyln.schematicpreview.gui.PopupScreenCompat;
@@ -50,7 +51,7 @@ public final class SchematicSaver
     public static void saveAs(ISchematic schematic)
     {
         Path dir = schematic.getFile().getParent();
-        String defaultName = stripExtension(schematic) + "_replaced";
+        String defaultName = FileNameUtils.getFileNameWithoutExtension(schematic.getFile().getFileName().toString()) + "_replaced";
 
         BaseScreen.openScreenWithParent(PopupScreenCompat.keepPopupSize(
                 new TextInputScreen("schematicpreview.gui.save_schematic_as.title",
@@ -82,18 +83,5 @@ public final class SchematicSaver
         }
 
         return success;
-    }
-
-    private static String stripExtension(ISchematic schematic)
-    {
-        String fileName = schematic.getFile().getFileName().toString();
-        String extension = schematic.getType().getFileNameExtension();
-
-        if (extension != null && fileName.endsWith(extension))
-        {
-            return fileName.substring(0, fileName.length() - extension.length());
-        }
-
-        return fileName;
     }
 }

@@ -14,13 +14,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
+
+import fi.dy.masa.malilib.util.FileNameUtils;
 
 /**
  * File-save and clipboard export for a captured preview image ({@link PreviewWidget#captureImage()}).
@@ -40,17 +40,10 @@ public final class ScreenshotUtil
             Path dir = Minecraft.getMinecraft().gameDir.toPath().resolve("screenshots").resolve("schematicpreview");
             Files.createDirectories(dir);
 
-            String name = schematicPath.getFileName().toString();
-            int dot = name.lastIndexOf('.');
-
-            if (dot > 0)
-            {
-                name = name.substring(0, dot);
-            }
-
-            name = name.replaceAll("[^A-Za-z0-9_-]", "_");
-            String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-            File file = dir.resolve(name + "_" + timestamp + ".png").toFile();
+            // Not FileNameUtils.generateSimpleSafeFileName: that lowercases the name.
+            String name = FileNameUtils.getFileNameWithoutExtension(schematicPath.getFileName().toString())
+                                       .replaceAll("[^A-Za-z0-9_-]", "_");
+            File file = dir.resolve(name + "_" + FileNameUtils.getDateTimeString() + ".png").toFile();
 
             ImageIO.write(image, "png", file);
             return file;
