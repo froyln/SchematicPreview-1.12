@@ -1,6 +1,8 @@
 package dev.froyln.schematicpreview.materials;
 
 import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -9,28 +11,33 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 
 import fi.dy.masa.litematica.data.DataManager;
+import fi.dy.masa.litematica.materials.MaterialCache;
 import fi.dy.masa.litematica.schematic.ISchematic;
 import fi.dy.masa.litematica.schematic.ISchematicRegion;
 import fi.dy.masa.litematica.schematic.SchematicMetadata;
 import fi.dy.masa.litematica.schematic.container.ILitematicaBlockStateContainer;
 
 /**
- * Replaces every occurrence of a block variant, across the given regions of a schematic, with
- * another block variant, keeping whichever placement/orientation properties the old block had
- * that don't belong to the new variant's own identity (e.g. a slab's top/bottom half survives,
- * but its stone/quartz/etc. variant is fully replaced instead of merged with the old one).
+ * Replaces every block state that a material list row stands for, across the given regions
+ * of a schematic, with another block variant, keeping whichever placement/orientation
+ * properties the old state had that don't belong to the new variant's own identity (e.g. a
+ * slab's top/bottom half survives, but its stone/quartz/etc. variant is fully replaced
+ * instead of merged with the old one).
  * <p>
- * Matching and identity are both expressed via {@link Block#damageDropped(IBlockState)} (the
- * same "what item does this placed state require" mapping the material list itself is built
- * from) rather than {@link Block#getMetaFromState(IBlockState)} directly, since several vanilla
- * blocks - slabs being the obvious case - pack placement-only bits (top/bottom half) into the
- * raw state metadata that never show up in the item's own damage value.
+ * A row is matched by asking Litematica's {@link MaterialCache} for the items each placed
+ * state requires - the exact mapping the material list was built from - so rows for
+ * item-placed blocks (doors, redstone dust, repeaters, beds, crops...) and for states that
+ * need several items (double slabs) resolve to their blocks too, which
+ * {@link Block#getBlockFromItem} alone never could. The new variant's identity is expressed
+ * via {@link Block#damageDropped(IBlockState)} rather than the raw state metadata, since
+ * several vanilla blocks - slabs being the obvious case - pack placement-only bits into it.
  */
 public final class BlockReplacer
 {
@@ -38,9 +45,13 @@ public final class BlockReplacer
     {
     }
 
-    public static long replace(Block oldBlock, int oldMeta, Block newBlock, int newMeta,
+    public static long replace(ItemStack oldStack, Block newBlock, int newMeta,
                                ISchematic schematic, Collection<String> regionNames)
     {
+        MaterialCache cache = MaterialCache.getInstance();
+        // MaterialCache.getItems() rebuilds its list on every call; a schematic has millions
+        // of positions but only a palette's worth of distinct states, so memoize per state.
+        Map<IBlockState, Boolean> matches = new IdentityHashMap<>();
         IBlockState newBase = newBlock.getStateFromMeta(newMeta);
         long count = 0;
 
@@ -64,12 +75,12 @@ public final class BlockReplacer
                     {
                         IBlockState state = container.getBlockState(x, y, z);
 
-                        if (state.getBlock() == oldBlock && oldBlock.damageDropped(state) == oldMeta)
+                        if (matches.computeIfAbsent(state, s -> requiresItem(cache, s, oldStack)))
                         {
                             container.setBlockState(x, y, z, buildReplacement(state, newBlock, newBase, newMeta));
                             ++count;
 
-                            if (newBlock != oldBlock)
+                            if (newBlock != state.getBlock())
                             {
                                 replaceBlockEntityData(region, new BlockPos(x, y, z), newBlock, newMeta);
                             }
@@ -83,9 +94,10 @@ public final class BlockReplacer
         {
             SchematicMetadata meta = schematic.getMetadata();
 
-            if (meta.getTotalBlocks() >= 0 && (oldBlock == Blocks.AIR) != (newBlock == Blocks.AIR))
+            // Air is never a material list row, so a count change can only be non-air -> air.
+            if (meta.getTotalBlocks() >= 0 && newBlock == Blocks.AIR)
             {
-                meta.setTotalBlocks(meta.getTotalBlocks() + (newBlock == Blocks.AIR ? -count : count));
+                meta.setTotalBlocks(meta.getTotalBlocks() - count);
             }
 
             meta.setTimeModifiedToNow();
@@ -95,6 +107,24 @@ public final class BlockReplacer
         }
 
         return count;
+    }
+
+    private static boolean requiresItem(MaterialCache cache, IBlockState state, ItemStack stack)
+    {
+        if (state.getBlock() == Blocks.AIR)
+        {
+            return false;
+        }
+
+        for (ItemStack required : cache.getItems(state))
+        {
+            if (required.getItem() == stack.getItem() && required.getMetadata() == stack.getMetadata())
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -3,7 +3,6 @@ package dev.froyln.schematicpreview.gui;
 import java.util.Collection;
 
 import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
 import fi.dy.masa.litematica.gui.widget.list.entry.MaterialListEntryWidget;
@@ -56,13 +55,6 @@ public class ReplaceMaterialListEntryWidget extends MaterialListEntryWidget
     private void openBlockSelect()
     {
         ItemStack oldStack = this.data.getStack();
-        Block oldBlock = Block.getBlockFromItem(oldStack.getItem());
-
-        if (oldBlock == Blocks.AIR)
-        {
-            MessageDispatcher.error().translate("schematicpreview.message.replace_block.not_a_block");
-            return;
-        }
 
         BaseScreen.openScreenWithParent(new BlockSelectScreen("schematicpreview.gui.replace_block.title",
                 oldStack.getDisplayName(), (newStack) -> this.replaceWith(oldStack, newStack)));
@@ -85,9 +77,8 @@ public class ReplaceMaterialListEntryWidget extends MaterialListEntryWidget
             regionNames = schematic.getRegionNames();
         }
 
-        Block oldBlock = Block.getBlockFromItem(oldStack.getItem());
         Block newBlock = Block.getBlockFromItem(newStack.getItem());
-        long count = BlockReplacer.replace(oldBlock, oldStack.getMetadata(), newBlock, newStack.getMetadata(), schematic, regionNames);
+        long count = BlockReplacer.replace(oldStack, newBlock, newStack.getMetadata(), schematic, regionNames);
 
         this.materialList.reCreateMaterialList();
         this.listWidget.refreshEntries();

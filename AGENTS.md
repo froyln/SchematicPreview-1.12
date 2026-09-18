@@ -174,8 +174,11 @@ Replace: `MaterialListScreenMixin` (RETURN of `createListWidget`) swaps the entr
 factory for `ReplaceMaterialListEntryWidget` when
 `materialList instanceof MaterialListSchematic || MaterialListPlacement`; accessor mixins expose
 the private `schematic`/`regions`/`placement` fields. `BlockReplacer` iterates every region
-container (`getBlockState`/`setBlockState`), copies properties both blocks share, fixes
-`SchematicMetadata.totalBlocks` for air↔non-air, `setTimeModifiedToNow()`,
+container (`getBlockState`/`setBlockState`), matching a position when Litematica's
+`MaterialCache.getItems(state)` — the same mapping the material list is built from — contains
+the row's item+meta (so doors, redstone dust, repeaters, double slabs... all resolve; a plain
+`Block.getBlockFromItem` did not), copies properties both blocks share, fixes
+`SchematicMetadata.totalBlocks` when replacing with air, `setTimeModifiedToNow()`,
 `setModifiedSinceSaved()`, then marks all placements of that schematic for chunk rebuild via
 `DataManager.getSchematicPlacementManager()`. When the block itself changes it also drops the
 position's tile-entity NBT and pending tick from the region maps (else a chest's NBT lingers
