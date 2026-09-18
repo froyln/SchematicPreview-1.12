@@ -85,7 +85,7 @@ default `/goal` condition: "`./gradlew build` exits 0".
 
 ## Project structure
 
-All seven PLAN.md tasks are done (first release 0.1.0). The `[task N]` tags below only record
+All seven PLAN.md tasks are done (first release 1.0.0). The `[task N]` tags below only record
 which task introduced a file:
 
 ```
