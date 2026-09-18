@@ -50,10 +50,7 @@ public class InitHandler implements InitializationHandler
             }
         });
 
-        Registry.TICK_EVENT_DISPATCHER.registerClientTickHandler(() -> {
-            PreviewCache.tickClose();
-            DirectoryIconStore.tickSave();
-        });
+        Registry.TICK_EVENT_DISPATCHER.registerClientTickHandler(PreviewCache::tickClose);
 
         Configs.Generic.OPEN_CONFIG_SCREEN.setHotkeyCallback((action, key) -> {
             BaseScreen.openScreen(ConfigScreen.create());

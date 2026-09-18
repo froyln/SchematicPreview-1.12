@@ -102,7 +102,7 @@ src/main/java/dev/froyln/schematicpreview/
 ├── config/ConfigScreen.java      # BaseConfigScreen with tabs Generic / Menu / Preview / Hotkeys [done]
 ├── config/PreviewType.java       # LIST, LIST_PREVIEW, TILE_5, TILE_4, TILE_3 (OptionListConfigValue) [done]
 ├── config/SchematicPreviewConfigPanel.java  # RedirectingConfigPanel for LiteLoader's mod panel  [done]
-├── data/DirectoryIconStore.java  # icons JSON (path → item id + position), dirty flag, save on exit  [task 4]
+├── data/DirectoryIconStore.java  # icons JSON (path → item id + position), written on every change  [task 4]
 ├── gui/PreviewWidget.java        # malilib widget: FBO preview, drag-rotate, scroll-zoom, fullscreen/freecam [done]
 ├── gui/PreviewFullscreenScreen.java  [done]
 ├── gui/DirectoryIconEditScreen.java  [task 4]
@@ -191,8 +191,8 @@ straight from disk with no load/placement, so Replace edits there had no way bac
 the browser's cached preview isn't stale, `saveAs` writes a new file via Litematica's own
 `ISchematic.writeToFile(dir, name, false)` (refuses an existing name itself).
 
-State lives in: `Configs` statics (malilib persists them), `DirectoryIconStore` (static map +
-dirty flag), `PreviewCache` (static, GL resources — must be released on the render thread).
+State lives in: `Configs` statics (malilib persists them), `DirectoryIconStore` (static map,
+file rewritten on each change), `PreviewCache` (static, GL resources — must be released on the render thread).
 
 ## Configuration
 

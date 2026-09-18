@@ -8,7 +8,6 @@ import javax.annotation.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
 
 import fi.dy.masa.malilib.config.util.ConfigUtils;
@@ -20,15 +19,14 @@ import dev.froyln.schematicpreview.Reference;
  * Per-directory custom icons, keyed by absolute path with {@code /} separators, persisted to
  * {@code config/schematicpreview_icons.json}. Unknown item ids (deleted mod, typo, hand-edited
  * file) are dropped rather than kept around as dead entries - see AGENTS.md -> Security
- * invariants. The file is only rewritten once the user actually changes an icon, never just
- * because a stale entry was dropped on load.
+ * invariants. The file is rewritten right after each change the user makes (it's a few
+ * hundred bytes), never just because a stale entry was dropped on load.
  */
 public final class DirectoryIconStore
 {
     private static final String FILE_NAME = Reference.MOD_ID + "_icons.json";
 
     private static final Map<String, Entry> ICONS = new HashMap<>();
-    private static boolean dirty;
 
     private DirectoryIconStore()
     {
@@ -37,7 +35,6 @@ public final class DirectoryIconStore
     public static void load()
     {
         ICONS.clear();
-        dirty = false;
 
         JsonElement root = JsonUtils.parseJsonFile(getFile());
 
@@ -73,17 +70,8 @@ public final class DirectoryIconStore
         }
     }
 
-    /**
-     * Called every client tick; only writes the file once dirty and no screen is open, matching
-     * {@link dev.froyln.schematicpreview.render.PreviewCache#tickClose()}'s pattern.
-     */
-    public static void tickSave()
+    private static void save()
     {
-        if (dirty == false || Minecraft.getMinecraft().currentScreen != null)
-        {
-            return;
-        }
-
         JsonObject root = new JsonObject();
         JsonObject icons = new JsonObject();
 
@@ -96,11 +84,7 @@ public final class DirectoryIconStore
         }
 
         root.add("icons", icons);
-
-        if (JsonUtils.writeJsonToFile(root, getFile()))
-        {
-            dirty = false;
-        }
+        JsonUtils.writeJsonToFile(root, getFile());
     }
 
     @Nullable
@@ -121,7 +105,7 @@ public final class DirectoryIconStore
         }
 
         ICONS.put(keyFor(directory), new Entry(itemId, position));
-        dirty = true;
+        save();
         return true;
     }
 
@@ -129,7 +113,7 @@ public final class DirectoryIconStore
     {
         if (ICONS.remove(keyFor(directory)) != null)
         {
-            dirty = true;
+            save();
         }
     }
 
