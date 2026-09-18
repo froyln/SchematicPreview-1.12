@@ -280,7 +280,7 @@ public class PreviewWidget extends InteractableWidget
         this.fbo.bindFramebuffer(true);
 
         renderer.draw(texWidth, texHeight, Configs.Preview.PREVIEW_FOV.getDoubleValue(), this.yRot, this.xRot, this.distance,
-                      this.targetX, this.targetY, this.targetZ, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue());
+                      this.targetX, this.targetY, this.targetZ, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue(), false);
 
         this.mc.getFramebuffer().bindFramebuffer(true);
     }

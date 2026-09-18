@@ -147,19 +147,26 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
         }
     }
 
-    private void renderPreviewBox(Path schematicPath, int x, int y, float z)
+    /**
+     * The rectangle {@code {x, y, width, height}} a schematic preview or a centered directory
+     * icon is drawn into: the whole cell above the name strip for tiles, a padded square at
+     * the left of the row for lists.
+     */
+    private int[] previewBox(int x, int y)
     {
         if (this.previewType.isTile())
         {
-            int previewHeight = this.getHeight() - TILE_TEXT_STRIP_HEIGHT;
-            PreviewCache.renderSmallPreview(schematicPath, x, y, this.getWidth(), previewHeight, z + 0.5f);
+            return new int[] { x, y, this.getWidth(), this.getHeight() - TILE_TEXT_STRIP_HEIGHT };
         }
-        else
-        {
-            int previewSize = this.getHeight() - PREVIEW_PADDING * 2;
-            PreviewCache.renderSmallPreview(schematicPath, x + PREVIEW_PADDING, y + PREVIEW_PADDING,
-                                            previewSize, previewSize, z + 0.5f);
-        }
+
+        int size = this.getHeight() - PREVIEW_PADDING * 2;
+        return new int[] { x + PREVIEW_PADDING, y + PREVIEW_PADDING, size, size };
+    }
+
+    private void renderPreviewBox(Path schematicPath, int x, int y, float z)
+    {
+        int[] box = this.previewBox(x, y);
+        PreviewCache.renderSmallPreview(schematicPath, box[0], box[1], box[2], box[3], z + 0.5f);
     }
 
     private void renderDirectoryVisual(int x, int y, float z)
@@ -190,29 +197,13 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
 
         if (this.iconEntry.position == IconPosition.CENTER)
         {
-            // Same box geometry renderPreviewBox() draws a schematic preview into - keeps the
-            // icon inside the area textOffset actually reserved for it above, instead of
-            // floating in the middle of a much wider list/list-preview row.
-            int boxX = x;
-            int boxY = y;
-            int boxWidth;
-            int boxHeight;
-
-            if (this.previewType.isTile())
-            {
-                boxWidth = this.getWidth();
-                boxHeight = this.getHeight() - TILE_TEXT_STRIP_HEIGHT;
-            }
-            else
-            {
-                boxWidth = boxHeight = this.getHeight() - PREVIEW_PADDING * 2;
-                boxX = x + PREVIEW_PADDING;
-                boxY = y + PREVIEW_PADDING;
-            }
-
-            int scale = Math.max(1, Math.min(boxWidth, boxHeight) / 20);
-            int drawX = boxX + (boxWidth - 16 * scale) / 2;
-            int drawY = boxY + (boxHeight - 16 * scale) / 2;
+            // Same box a schematic preview is drawn into - keeps the icon inside the area
+            // textOffset actually reserved for it above, instead of floating in the middle of
+            // a much wider list/list-preview row.
+            int[] box = this.previewBox(x, y);
+            int scale = Math.max(1, Math.min(box[2], box[3]) / 20);
+            int drawX = box[0] + (box[2] - 16 * scale) / 2;
+            int drawY = box[1] + (box[3] - 16 * scale) / 2;
             ItemRenderUtils.renderStackAt(stack, drawX, drawY, z + 0.6f, scale, this.mc);
         }
         else

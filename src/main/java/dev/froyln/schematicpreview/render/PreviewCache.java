@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import javax.annotation.Nullable;
 
 import org.lwjgl.opengl.GL11;
@@ -26,7 +25,11 @@ import fi.dy.masa.litematica.schematic.SchematicType;
  */
 public final class PreviewCache
 {
-    private static final Executor LOADER = Executors.newSingleThreadExecutor(daemonThreadFactory());
+    private static final Executor LOADER = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "SchematicPreview-Loader");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private static final Map<Path, CompletableFuture<ISchematic>> SCHEMATICS = new HashMap<>();
     private static final Map<Path, PreviewRenderer> RENDERERS = new HashMap<>();
@@ -37,15 +40,6 @@ public final class PreviewCache
 
     private PreviewCache()
     {
-    }
-
-    private static ThreadFactory daemonThreadFactory()
-    {
-        return runnable -> {
-            Thread thread = new Thread(runnable, "SchematicPreview-Loader");
-            thread.setDaemon(true);
-            return thread;
-        };
     }
 
     public static CompletableFuture<ISchematic> getSchematic(Path file)
@@ -133,7 +127,7 @@ public final class PreviewCache
         float xRot = (float) Configs.Preview.PREVIEW_ROTATION_X.getDoubleValue();
         double fov = Configs.Preview.PREVIEW_FOV.getDoubleValue();
         renderer.draw(width, height, fov, yRot, xRot, renderer.getDefaultDistance(fov, (double) width / height),
-                      center.x, center.y, center.z, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue());
+                      center.x, center.y, center.z, Configs.Preview.RENDER_TILE_ENTITIES.getBooleanValue(), false);
 
         Minecraft.getMinecraft().getFramebuffer().bindFramebuffer(true);
 

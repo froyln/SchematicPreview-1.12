@@ -46,7 +46,7 @@ public class PreviewFullscreenScreen extends BaseScreen
         this.saveButton.setRenderButtonBackgroundTexture(true);
         this.saveButton.translateAndAddHoverString("schematicpreview.button.save_screenshot");
         this.saveButton.setActionListener((mouseButton, w) -> {
-            this.schematicpreview$onSave();
+            this.onSave();
             return true;
         });
 
@@ -54,11 +54,11 @@ public class PreviewFullscreenScreen extends BaseScreen
         this.copyButton.setRenderButtonBackgroundTexture(true);
         this.copyButton.translateAndAddHoverString("schematicpreview.button.copy_screenshot");
         this.copyButton.setActionListener((mouseButton, w) -> {
-            this.schematicpreview$onCopy();
+            this.onCopy();
             return true;
         });
 
-        this.schematicpreview$positionButtons();
+        this.positionButtons();
     }
 
     @Override
@@ -72,10 +72,10 @@ public class PreviewFullscreenScreen extends BaseScreen
                                            this.getScreenWidth(), this.getScreenHeight() - TOP_MARGIN);
         }
 
-        this.schematicpreview$positionButtons();
+        this.positionButtons();
     }
 
-    private void schematicpreview$positionButtons()
+    private void positionButtons()
     {
         if (this.saveButton != null)
         {
@@ -93,7 +93,7 @@ public class PreviewFullscreenScreen extends BaseScreen
      * frame rather than synchronously - see the comment on {@code serviceCaptureRequest} there
      * for why a capture can't just run straight from this button click.
      */
-    private void schematicpreview$requestImage(Consumer<BufferedImage> onImage)
+    private void requestImage(Consumer<BufferedImage> onImage)
     {
         if (this.widget == null)
         {
@@ -113,9 +113,9 @@ public class PreviewFullscreenScreen extends BaseScreen
         });
     }
 
-    private void schematicpreview$onSave()
+    private void onSave()
     {
-        this.schematicpreview$requestImage(image -> {
+        this.requestImage(image -> {
             File file = ScreenshotUtil.save(image, this.path);
 
             if (file != null)
@@ -129,9 +129,9 @@ public class PreviewFullscreenScreen extends BaseScreen
         });
     }
 
-    private void schematicpreview$onCopy()
+    private void onCopy()
     {
-        this.schematicpreview$requestImage(image -> {
+        this.requestImage(image -> {
             if (ScreenshotUtil.copyToClipboard(image))
             {
                 MessageDispatcher.success().translate("schematicpreview.message.image_copied");

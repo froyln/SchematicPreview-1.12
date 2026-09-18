@@ -170,13 +170,7 @@ public class PreviewRenderer
     }
 
     public void draw(int width, int height, double fov, float yRot, float xRot, double distance,
-                      double targetX, double targetY, double targetZ, boolean renderTileEntities)
-    {
-        this.draw(width, height, fov, yRot, xRot, distance, targetX, targetY, targetZ, renderTileEntities, false);
-    }
-
-    private void draw(int width, int height, double fov, float yRot, float xRot, double distance,
-                       double targetX, double targetY, double targetZ, boolean renderTileEntities, boolean transparentBackground)
+                      double targetX, double targetY, double targetZ, boolean renderTileEntities, boolean transparentBackground)
     {
         Vec3i size = this.access.getBoxSize();
         double diagonal = Math.sqrt(size.getX() * (double) size.getX() + size.getY() * (double) size.getY() + size.getZ() * (double) size.getZ());

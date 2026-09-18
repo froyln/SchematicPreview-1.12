@@ -80,10 +80,8 @@ public abstract class BaseSchematicBrowserScreenMixin
         }
         else
         {
-            int height = type == PreviewType.LIST_PREVIEW
-                    ? Configs.Menu.LIST_PREVIEW_ENTRY_HEIGHT.getIntegerValue()
-                    : Configs.Menu.LIST_ENTRY_HEIGHT.getIntegerValue();
-            listWidget.setListEntryWidgetFixedHeight(height);
+            // LIST / LIST_PREVIEW heights don't depend on the width.
+            listWidget.setListEntryWidgetFixedHeight(type.getHeight(0));
             listWidget.setListEntryWidgetFactory(listWidget);
         }
     }

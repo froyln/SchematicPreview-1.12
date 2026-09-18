@@ -79,15 +79,7 @@ public final class DirectoryIconStore
      */
     public static void tickSave()
     {
-        if (dirty && Minecraft.getMinecraft().currentScreen == null)
-        {
-            saveIfDirty();
-        }
-    }
-
-    private static void saveIfDirty()
-    {
-        if (dirty == false)
+        if (dirty == false || Minecraft.getMinecraft().currentScreen != null)
         {
             return;
         }
