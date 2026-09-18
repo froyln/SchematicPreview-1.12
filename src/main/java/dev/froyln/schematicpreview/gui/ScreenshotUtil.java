@@ -94,8 +94,11 @@ public final class ScreenshotUtil
             ByteArrayOutputStream png = new ByteArrayOutputStream();
             ImageIO.write(image, "png", png);
 
+            // Output goes to /dev/null: nobody reads it, and a pipe left unread would block
+            // the child (and hit the timeout) if it ever printed more than the pipe buffer.
             Process process = new ProcessBuilder("wl-copy", "--type", "image/png")
                     .redirectErrorStream(true)
+                    .redirectOutput(new File("/dev/null"))
                     .start();
 
             try (OutputStream stdin = process.getOutputStream())
@@ -103,7 +106,13 @@ public final class ScreenshotUtil
                 png.writeTo(stdin);
             }
 
-            return process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0;
+            if (process.waitFor(10, TimeUnit.SECONDS) == false)
+            {
+                process.destroyForcibly();
+                return false;
+            }
+
+            return process.exitValue() == 0;
         }
         catch (IOException | InterruptedException e)
         {
