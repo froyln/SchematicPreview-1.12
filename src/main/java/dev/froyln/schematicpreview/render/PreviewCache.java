@@ -228,6 +228,17 @@ public final class PreviewCache
         FIRST_SCHEMATICS.remove(directory);
     }
 
+    /**
+     * Forgets every directory's first file. Called whenever a browser list is (re)built, so a
+     * delete/rename in Litematica's schematic manager - which keeps the GUI open - doesn't leave
+     * a row previewing a file that is gone; still one {@code Files.list} per directory per
+     * screen open rather than per widget rebuild.
+     */
+    public static void invalidateDirectories()
+    {
+        FIRST_SCHEMATICS.clear();
+    }
+
     public static void close()
     {
         for (PreviewRenderer renderer : RENDERERS.values())

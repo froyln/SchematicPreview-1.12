@@ -22,6 +22,7 @@ import dev.froyln.schematicpreview.gui.BrowserWidgetAccessors;
 import dev.froyln.schematicpreview.gui.PreviewDirectoryEntryWidget;
 import dev.froyln.schematicpreview.gui.SchematicPreviewIcons;
 import dev.froyln.schematicpreview.gui.TileEntryWidgetFactory;
+import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
  * Installs preview-aware entry widgets/factory and a preview-type cycle button into every
@@ -45,6 +46,8 @@ public abstract class BaseSchematicBrowserScreenMixin
         {
             return;
         }
+
+        PreviewCache.invalidateDirectories();
 
         BaseFileBrowserWidget listWidget = cir.getReturnValue();
         BrowserWidgetAccessors.setAreEntriesFixedHeight(listWidget, false);
