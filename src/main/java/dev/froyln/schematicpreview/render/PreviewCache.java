@@ -16,6 +16,7 @@ import net.minecraft.util.math.Vec3d;
 
 import dev.froyln.schematicpreview.config.Configs;
 import fi.dy.masa.litematica.schematic.ISchematic;
+import fi.dy.masa.litematica.schematic.ISchematicRegion;
 import fi.dy.masa.litematica.schematic.SchematicType;
 
 /**
@@ -52,7 +53,17 @@ public final class PreviewCache
         return CompletableFuture.supplyAsync(() -> {
             try
             {
-                return SchematicType.tryCreateSchematicFrom(file);
+                ISchematic schematic = SchematicType.tryCreateSchematicFrom(file);
+
+                if (schematic != null)
+                {
+                    // Warms Litematica's per-container block counts here, off-thread: the
+                    // first call walks the whole container, later ones are cached, so
+                    // getBlockCount() on the render thread never stalls the GUI.
+                    getBlockCount(schematic);
+                }
+
+                return schematic;
             }
             catch (Throwable t)
             {
@@ -68,6 +79,23 @@ public final class PreviewCache
             renderer.setup(schematic);
             return renderer;
         });
+    }
+
+    /**
+     * Non-air block count of {@code schematic}, counted from the containers - the file's own
+     * {@code TotalBlocks} metadata is read verbatim by Litematica and a third-party writer can
+     * put anything there, so it can't be what gates memory use.
+     */
+    public static long getBlockCount(ISchematic schematic)
+    {
+        long count = 0;
+
+        for (ISchematicRegion region : schematic.getRegions().values())
+        {
+            count += region.getBlockStateContainer().getTotalBlockCount();
+        }
+
+        return count;
     }
 
     /**

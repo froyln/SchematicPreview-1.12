@@ -428,6 +428,9 @@ public class PreviewRenderer
     private void drawTileEntities()
     {
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
+        // A render() that returns normally leaves the depth where it found it, so one
+        // snapshot serves as the unwind target for every tile entity in the loop.
+        int stackDepth = GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH);
 
         for (BlockPos pos : this.tileEntityPositions)
         {
@@ -437,8 +440,6 @@ public class PreviewRenderer
             {
                 continue;
             }
-
-            int stackDepth = GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH);
 
             try
             {
