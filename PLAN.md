@@ -741,11 +741,15 @@ file-name or feature change is allowed** — that is the acceptance bar, not "le
   builds (`e06b421`); modelview stack unwind + static blacklist when a TESR throws (mob
   spawners NPE on the null world after two pushes, which broke the rest of the GUI frame)
   (`e3177a7`); Replace now drops/creates tile-entity NBT and pending ticks at changed
-  positions. Found but **not** fixed (user's call, see session notes): `Generic.enabled` only
-  gates the side panel; Replace can't target item-placed blocks (doors, redstone dust,
-  repeaters...) since `MaterialListEntry` only carries the ItemStack; `wl-copy` process not
-  destroyed on timeout; `Files.list` per directory row per widget rebuild; icon store only
-  saved once no screen is open.
+  positions (`88b3cf8`); block count for the cap comes from the containers, not the file's
+  `TotalBlocks` tag (`13735ff`). Second round, all fixed: `Generic.enabled` gates the browser
+  and material list mixins too (`a8932bf`); Replace matches positions through
+  `MaterialCache.getItems(state)` so item-placed blocks (doors, redstone dust, repeaters...)
+  and double slabs resolve (`2e3d9bc`) — note this also means a "Poppy" row matches potted
+  poppies, exactly as the material list counts them; `wl-copy` killed on timeout, output to
+  `/dev/null` (`d9ae533`); first-schematic-per-directory cached in `PreviewCache`, cleared on
+  every browser list build so manager delete/rename can't leave a stale row (`1bc5b4f` + follow-up);
+  icon store written on every change instead of on a screen-less tick (`30c149b`).
 
 ---
 
