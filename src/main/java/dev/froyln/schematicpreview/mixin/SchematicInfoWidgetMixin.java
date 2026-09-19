@@ -21,10 +21,8 @@ import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
  * Replaces the vanilla 2D thumbnail in the schematic info panel with a live 3D
- * {@link PreviewWidget}. {@code extends ContainerWidget} here is the standard Mixin trick to
- * get direct (un-shadowed) access to inherited protected members ({@code addWidget},
- * {@code subWidgets}, {@code getX}, ...) - it's stripped by the bytecode merge, the real
- * {@code SchematicInfoWidget} superclass is untouched.
+ * {@link PreviewWidget}. {@code extends ContainerWidget} is the usual trick to reach
+ * inherited protected members without shadows.
  */
 @Mixin(SchematicInfoWidget.class)
 public abstract class SchematicInfoWidgetMixin extends ContainerWidget

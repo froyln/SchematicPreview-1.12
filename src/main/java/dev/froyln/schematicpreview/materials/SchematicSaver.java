@@ -15,10 +15,8 @@ import dev.froyln.schematicpreview.gui.PopupScreenCompat;
 import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
- * "Save" / "Save as" for a schematic that was read straight from disk for a material list
- * (never loaded/placed) - lets Replace edits be written back without going through
- * SchematicHolder or a placement. Only schematics with a backing file
- * ({@link ISchematic#getFile()} non-null) can be saved; callers gate on that first.
+ * "Save" / "Save as" for a schematic read straight from disk for a material list, so Replace
+ * edits can be written back. Only schematics with a backing file can be saved.
  */
 public final class SchematicSaver
 {
@@ -43,10 +41,8 @@ public final class SchematicSaver
     }
 
     /**
-     * Opens a text input pre-filled with a "_replaced" suggestion, writing a new file (never
-     * overwriting) alongside the source on confirm. Litematica's own {@code writeToFile}
-     * refuses an existing name and shows its own error; the input screen stays open on failure
-     * since {@code consumeString} returns that result.
+     * Opens a text input pre-filled with a "_replaced" suggestion and writes a new file next to
+     * the source; Litematica's {@code writeToFile} refuses an existing name itself.
      */
     public static void saveAs(ISchematic schematic)
     {

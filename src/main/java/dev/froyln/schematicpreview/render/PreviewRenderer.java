@@ -81,11 +81,8 @@ public class PreviewRenderer
     }
 
     /**
-     * Distance along the view axis at which the schematic's full bounding diagonal fits inside
-     * both the vertical and the (aspect-derived) horizontal field of view - not just "far enough
-     * for the diagonal", which was too close on any narrow/tall widget (aspect far from 1:1, e.g.
-     * the side panel or a tall multi-region schematic): the diagonal fit vertically long before it
-     * fit through the much narrower horizontal FOV, clipping the corners.
+     * Distance at which the bounding diagonal fits inside both the vertical and the
+     * aspect-derived horizontal FOV (the narrower one clips corners on tall widgets otherwise).
      */
     public double getDefaultDistance(double fovYDegrees, double aspect)
     {
@@ -99,7 +96,6 @@ public class PreviewRenderer
         double distanceForY = halfDiagonal / Math.sin(halfFovY);
         double distanceForX = halfDiagonal / Math.sin(halfFovX);
 
-        // Small margin on top of the exact fit so corners aren't right on the frustum edge.
         return Math.max(3.0, Math.max(distanceForY, distanceForX) * 1.1);
     }
 
@@ -177,11 +173,8 @@ public class PreviewRenderer
         Vec3i size = this.access.getBoxSize();
         double diagonal = Math.sqrt(size.getX() * (double) size.getX() + size.getY() * (double) size.getY() + size.getZ() * (double) size.getZ());
 
-        // Opaque, not alpha 0: this FBO is blitted with blending on (see PreviewRenderUtils),
-        // so a transparent clear let whatever was already on screen behind the widget - the
-        // live game world, for this GUI - show through anywhere the schematic doesn't cover.
-        // captureImage() below is the one caller that wants the transparent clear on purpose,
-        // for a background-free exported image read back straight from this FBO.
+        // Opaque clear: the FBO is blitted with blending on, alpha 0 would let the world behind
+        // the GUI show through. Only captureImage() wants the transparent clear.
         GlStateManager.viewport(0, 0, width, height);
         GlStateManager.clearColor(transparentBackground ? 0f : 0.05f, transparentBackground ? 0f : 0.05f, transparentBackground ? 0f : 0.05f, transparentBackground ? 0f : 1f);
         GlStateManager.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
@@ -199,14 +192,7 @@ public class PreviewRenderer
         GlStateManager.rotate(yRot, 0f, 1f, 0f);
         GlStateManager.translate(-targetX, -targetY, -targetZ);
 
-        // This draws from two very different contexts: the normal per-frame GUI render (state
-        // left by whatever malilib drew just before us) and a one-off capture triggered from a
-        // button click (state left by whichever GL calls last ran during input handling - often
-        // Framebuffer's own post-render blit, which disables alpha test and leaves a foreign
-        // blend func). Pin every piece of state this method depends on instead of trusting
-        // either caller's leftovers - found via a real capture silently dropping the top face of
-        // a redstone-wire-covered block (alpha test off let the wire's near-transparent padding
-        // texels through) while onscreen looked correct (that frame's state happened to be sane).
+        // Pin every GL state this depends on; callers (GUI frame, capture) leave arbitrary state.
         GlStateManager.disableFog();
         GlStateManager.disableColorMaterial();
         GlStateManager.disableRescaleNormal();
@@ -227,22 +213,9 @@ public class PreviewRenderer
         GlStateManager.color(1f, 1f, 1f, 1f);
         Minecraft.getMinecraft().getTextureManager().bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE);
 
-        // Every block is tessellated against a constant full-bright light value, so the static
-        // geometry itself doesn't need the lightmap unit - but tile entity renderers (e.g.
-        // TileEntityChestRenderer) unconditionally sample it via OpenGlHelper.setLightmapTextureCoords
-        // and expect *some* valid texture bound there. Leaving the unit merely disabled worked for
-        // plain blocks but left whatever texture happened to still be bound from earlier GUI
-        // rendering in place for tile entities to sample - looked exactly like a chest rendering
-        // with a wrong (reddish) tint. Bind a real 1x1 opaque-white texture instead: multiplying by
-        // white is the correct "full bright" identity regardless of what coordinates get sampled.
-        //
-        // The unit switch MUST go through GlStateManager.setActiveTexture, never the raw
-        // OpenGlHelper.setActiveTexture: GlStateManager caches bound-texture / texture2D state
-        // per unit, indexed by the unit *it* last switched to. A raw switch leaves that index on
-        // unit 0, so the bind/enable/disable below get recorded against unit 0's cache while GL
-        // applies them to unit 1 - and unit 1's own cache entry keeps saying "the lightmap is
-        // bound". Next world frame, EntityRenderer.enableLightmap()'s bindTexture(lightmap) is
-        // then a cached no-op, and the whole world renders lit by this 1x1 white texture.
+        // Tile entity renderers sample the lightmap unit unconditionally; a 1x1 white texture
+        // there is the full-bright identity. Must switch units via GlStateManager (it caches
+        // per-unit state), never the raw OpenGlHelper.setActiveTexture - see AGENTS.md Gotchas.
         GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
         GlStateManager.enableTexture2D();
         GlStateManager.bindTexture(getFullBrightLightmapTexture());
@@ -254,12 +227,8 @@ public class PreviewRenderer
         this.drawLayer(BlockRenderLayer.CUTOUT);
 
         GlStateManager.enableBlend();
-        // Alpha factors (ONE, ONE_MINUS_SRC_ALPHA) match the standard "over" compositing formula
-        // for the alpha channel (outA = srcA + dstA*(1-srcA)); the previous (ONE, ZERO) replaced
-        // whatever alpha an opaque block behind a translucent quad had already written with the
-        // translucent quad's own alpha - on a background-free capture that meant a translucent
-        // block (water, a portal...) sitting in front of an opaque one made the opaque block
-        // read back as semi-transparent too.
+        // Alpha factors composite ("over"); (ONE, ZERO) would overwrite an opaque block's alpha
+        // on a transparent capture.
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                                             GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         GlStateManager.depthMask(false);
@@ -267,8 +236,7 @@ public class PreviewRenderer
         GlStateManager.depthMask(true);
         GlStateManager.disableBlend();
 
-        // Real glColor, not a cached no-op (drawLayer() just invalidated the cache): tile entity
-        // models draw without a color array, so they take whatever the current color is.
+        // Tile entity models take the current color; drawLayer() invalidated the cache.
         GlStateManager.color(1f, 1f, 1f, 1f);
 
         if (renderTileEntities)
@@ -276,12 +244,7 @@ public class PreviewRenderer
             this.drawTileEntities();
         }
 
-        // Tile entity renderers (the end portal one especially - see AGENTS.md Gotchas) leave GL
-        // state behind that vanilla only ever relies on the next world-render frame to reset:
-        // lighting back on, a foreign blend func, texgen coords still enabled. Left alone, that
-        // state leaks into whatever malilib draws right after us in the same GUI frame - looked
-        // exactly like the whole screen going flat grey/white the moment an end-portal-bearing
-        // schematic was selected.
+        // Tile entity renderers (end portal especially) leave lighting/blend/texgen changed.
         GlStateManager.disableLighting();
         GlStateManager.disableRescaleNormal();
         GlStateManager.disableBlend();
@@ -308,8 +271,7 @@ public class PreviewRenderer
         GlStateManager.popMatrix();
     }
 
-    // Created once and never deleted - a single 1x1 texture shared for the mod's whole lifetime,
-    // same as the block atlas itself; not the kind of per-schematic GL resource that needs an owner.
+    // Created once, never deleted: one 1x1 texture for the mod's lifetime.
     private static int fullBrightLightmapTexture = -1;
 
     private static int getFullBrightLightmapTexture()
@@ -332,9 +294,7 @@ public class PreviewRenderer
 
     /**
      * Renders one frame into a throwaway FBO with a transparent clear and reads it back as a
-     * background-free image, for the fullscreen screen's save/copy buttons. Uses its own FBO
-     * (never the widget's own or the shared small-preview one) so this has no effect on their
-     * size or lifecycle. Caller is expected to have already called {@link #tick()} this frame.
+     * background-free image. Caller must have called {@link #tick()} this frame.
      */
     public java.awt.image.BufferedImage captureImage(int width, int height, double fov, float yRot, float xRot, double distance,
                                                        double targetX, double targetY, double targetZ, boolean renderTileEntities)
@@ -346,10 +306,7 @@ public class PreviewRenderer
             captureFbo.bindFramebuffer(true);
             this.draw(width, height, fov, yRot, xRot, distance, targetX, targetY, targetZ, renderTileEntities, true);
 
-            // Same GL_BGRA + GL_UNSIGNED_INT_8_8_8_8_REV read-back ScreenShotHelper.createScreenshot
-            // uses - that byte layout matches TYPE_INT_ARGB directly, no channel swapping needed.
-            // (ScreenShotHelper itself can't be reused: it always builds a TYPE_INT_RGB image,
-            // discarding alpha.)
+            // Same read-back as ScreenShotHelper; layout matches TYPE_INT_ARGB directly.
             GlStateManager.glPixelStorei(GL11.GL_PACK_ALIGNMENT, 1);
             GlStateManager.glPixelStorei(GL11.GL_PACK_ROW_LENGTH, 0);
             GlStateManager.bindTexture(captureFbo.framebufferTexture);
@@ -361,9 +318,7 @@ public class PreviewRenderer
             int[] pixels = new int[width * height];
             pixelBuffer.get(pixels);
 
-            // glGetTexImage returns rows bottom-to-top (GL texture origin is bottom-left);
-            // BufferedImage.setRGB expects top-to-bottom - flip or the saved/copied image is
-            // vertically mirrored relative to what's on screen.
+            // GL rows are bottom-to-top; flip.
             java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
 
             for (int row = 0; row < height; row++)
@@ -389,15 +344,9 @@ public class PreviewRenderer
             return;
         }
 
-        // glVertexPointer/glColorPointer/glTexCoordPointer interpret their last argument as a
-        // byte offset into the currently-bound GL_ARRAY_BUFFER, not a client-side pointer, so
-        // the VBO must be bound *before* the pointer setup - not after (confirmed the hard way:
-        // LWJGL throws "Cannot use offsets when Array Buffer Object is disabled" otherwise).
+        // Bind before the pointer setup: the pointer calls take offsets into the bound buffer.
         vbo.bindBuffer();
 
-        // The legacy client-side array states aren't guaranteed on in this GUI context
-        // (unlike the constant world-render loop malilib's own VBO helpers assume) - enable
-        // them ourselves before pointer setup, matching WorldVertexBufferUploader's own draws.
         GlStateManager.glEnableClientState(GL11.GL_VERTEX_ARRAY);
         GlStateManager.glVertexPointer(3, GL11.GL_FLOAT, 28, 0);
         GlStateManager.glEnableClientState(GL11.GL_COLOR_ARRAY);
@@ -411,11 +360,8 @@ public class PreviewRenderer
         vbo.drawArrays(GL11.GL_QUADS);
         OpenGlHelper.glBindBuffer(OpenGlHelper.GL_ARRAY_BUFFER, 0);
 
-        // Same teardown RenderGlobal.renderBlockLayer does after its VBO pass: the client-side
-        // array states and pointers would otherwise stay enabled - pointing at offsets into a
-        // buffer that is no longer bound - for whatever draws next, and a color-array draw leaves
-        // the GL current color undefined, so GlStateManager's cached color must be invalidated
-        // or its next color(1,1,1,1) is a silent no-op.
+        // Same teardown as RenderGlobal.renderBlockLayer; a color-array draw leaves the GL
+        // current color undefined, so the cached color must be reset.
         GlStateManager.glDisableClientState(GL11.GL_VERTEX_ARRAY);
         GlStateManager.glDisableClientState(GL11.GL_COLOR_ARRAY);
         GlStateManager.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
@@ -428,8 +374,6 @@ public class PreviewRenderer
     private void drawTileEntities()
     {
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
-        // A render() that returns normally leaves the depth where it found it, so one
-        // snapshot serves as the unwind target for every tile entity in the loop.
         int stackDepth = GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH);
 
         for (BlockPos pos : this.tileEntityPositions)
@@ -449,10 +393,7 @@ public class PreviewRenderer
             {
                 TILE_ENTITY_BLACKLIST.add(te.getClass());
 
-                // A renderer that throws mid-way (mob spawner: pushMatrix, then the entity
-                // renderer's pushMatrix, then NPE on the missing world) leaves its pushes on
-                // the stack; the pops at the end of draw() would then pop those instead of
-                // ours and the rest of the GUI frame renders through the 3D camera matrix.
+                // A renderer that throws mid-way leaves its matrix pushes on the stack.
                 GlStateManager.matrixMode(GL11.GL_MODELVIEW);
 
                 while (GL11.glGetInteger(GL11.GL_MODELVIEW_STACK_DEPTH) > stackDepth)

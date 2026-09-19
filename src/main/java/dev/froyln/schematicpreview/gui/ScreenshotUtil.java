@@ -56,8 +56,6 @@ public final class ScreenshotUtil
 
     public static boolean copyToClipboard(BufferedImage image)
     {
-        // wl-copy serves exactly the PNG bytes it is given, so the transparent capture goes
-        // through as-is; only the AWT fallback needs the opaque version (see toOpaque).
         if (System.getenv("WAYLAND_DISPLAY") != null && copyViaWlCopy(image))
         {
             return true;
@@ -76,16 +74,9 @@ public final class ScreenshotUtil
     }
 
     /**
-     * On a Wayland session the game (Java 8 AWT, LWJGL 2) is an X11 client under XWayland, and
-     * the compositor's X11-to-Wayland clipboard bridge drops AWT's chunked (INCR) selection
-     * transfer partway for anything bigger than a few hundred KB: native Wayland apps (Discord,
-     * any Chromium/Electron app, browsers) paste a truncated PNG - blank or only the top strip
-     * decodes - while X11 readers of the very same clipboard get it whole. Measured on Hyprland:
-     * three Wayland-side reads of one 6.25 MB AWT-owned PNG returned 4.8 / 2.9 / 5.5 MB, all
-     * corrupt; owned by {@code wl-copy} instead, 3/3 intact. So when a Wayland display is
-     * present, hand the finished PNG bytes to {@code wl-copy} (wl-clipboard, standard on every
-     * Wayland desktop) - a native Wayland owner - and only fall back to AWT if it isn't there.
-     * {@code wl-copy} reads stdin to EOF, forks a daemon to serve the clipboard, and exits.
+     * Under Wayland the game is an XWayland client and the compositor's clipboard bridge
+     * truncates AWT's INCR transfer for large images, so hand the PNG to {@code wl-copy}
+     * (a native owner) and fall back to AWT only if it isn't installed. See AGENTS.md Gotchas.
      */
     private static boolean copyViaWlCopy(BufferedImage image)
     {
@@ -94,8 +85,7 @@ public final class ScreenshotUtil
             ByteArrayOutputStream png = new ByteArrayOutputStream();
             ImageIO.write(image, "png", png);
 
-            // Output goes to /dev/null: nobody reads it, and a pipe left unread would block
-            // the child (and hit the timeout) if it ever printed more than the pipe buffer.
+            // Discard output: an unread pipe would block the child.
             Process process = new ProcessBuilder("wl-copy", "--type", "image/png")
                     .redirectErrorStream(true)
                     .redirectOutput(new File("/dev/null"))
@@ -121,13 +111,9 @@ public final class ScreenshotUtil
     }
 
     /**
-     * The clipboard must get an opaque {@code TYPE_INT_RGB} image, never the ARGB capture: AWT
-     * re-encodes the image into every format it advertises (PNG, JPEG, GIF...) on demand, and the
-     * JDK's JPEG encoder mangles 4-channel ARGB input - any app that pastes the JPEG flavor (most
-     * do; only PNG-aware ones take the PNG) gets inverted pink/cyan colors on black. Verified on
-     * the game's own JRE: ARGB (220,200,150) reads back as (200,100,142), RGB reads back exact.
-     * Composited over the same dark grey the on-screen preview clears to, so a paste looks like
-     * what was on screen. The saved PNG file keeps the transparent capture.
+     * AWT re-encodes the clipboard image on demand and the JDK JPEG writer mangles ARGB input
+     * (inverted colors), so the clipboard gets an opaque {@code TYPE_INT_RGB} composite over
+     * the preview's background color.
      */
     private static BufferedImage toOpaque(BufferedImage image)
     {

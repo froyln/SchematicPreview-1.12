@@ -19,11 +19,9 @@ import fi.dy.masa.malilib.gui.widget.button.GenericButton;
 import dev.froyln.schematicpreview.config.Configs;
 
 /**
- * Adds an "Open schematics folder" button to Litematica's main menu, in the empty slot under
- * "Configuration menu". Opening goes through vanilla {@code OpenGlHelper.openFile} (the same
- * call the resource pack screen's "Open folder" button uses), so there is no platform dispatch
- * of our own; the only thing that reaches it is the configured schematics base directory.
- * {@code extends BaseScreen} is the usual trick to reach the inherited {@code addWidget}.
+ * Adds an "Open schematics folder" button under Litematica's "Configuration menu" button, via
+ * vanilla {@code OpenGlHelper.openFile}. {@code extends BaseScreen} is the usual trick to
+ * reach the inherited {@code addWidget}.
  */
 @Mixin(MainMenuScreen.class)
 public abstract class MainMenuScreenMixin extends BaseScreen

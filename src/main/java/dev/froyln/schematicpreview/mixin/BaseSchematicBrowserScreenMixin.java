@@ -26,11 +26,7 @@ import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
  * Installs preview-aware entry widgets/factory and a preview-type cycle button into every
- * schematic browser screen. {@code createListWidget()} is the single point
- * {@code SchematicBrowserScreen}, {@code SchematicManagerScreen}, and
- * {@code BaseSaveSchematicScreen} all funnel through (only the manager screen overrides it, and
- * only to call {@code super.createListWidget()} then set an unrelated flag), so one mixin here
- * covers all three.
+ * schematic browser screen; all three subclasses funnel through {@code createListWidget()}.
  */
 @Mixin(BaseSchematicBrowserScreen.class)
 public abstract class BaseSchematicBrowserScreenMixin

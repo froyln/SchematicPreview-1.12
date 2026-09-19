@@ -14,34 +14,22 @@ import fi.dy.masa.malilib.render.text.StyledTextLine;
 import fi.dy.masa.malilib.render.text.TextRenderer;
 import fi.dy.masa.malilib.util.StringUtils;
 
-/**
- * Small rendering helpers shared between {@code PreviewWidget} (its own FBO) and
- * {@code PreviewCache}'s shared small-preview FBO, so the two don't duplicate the
- * FBO-blit/placeholder drawing code.
- */
+/** FBO-blit and placeholder helpers shared by {@code PreviewWidget} and {@code PreviewCache}. */
 public final class PreviewRenderUtils
 {
     private PreviewRenderUtils()
     {
     }
 
-    /**
-     * Blits the full extent of {@code fbo}'s color texture at {@code (x, y, width, height)} -
-     * for an FBO sized exactly to what was just rendered into it (e.g. {@code PreviewWidget}'s
-     * own dedicated FBO, recreated whenever its pixel size changes), so the whole texture maps
-     * 1:1 onto the destination rect regardless of GUI scale.
-     */
+    /** Blits the full extent of {@code fbo}'s color texture at {@code (x, y, width, height)}. */
     public static void blitFramebuffer(Framebuffer fbo, int x, int y, int width, int height, float z)
     {
         blitFramebuffer(fbo, x, y, width, height, fbo.framebufferWidth, fbo.framebufferHeight, z);
     }
 
     /**
-     * Blits {@code fbo}'s color texture at {@code (x, y, width, height)}, sampling only the
-     * {@code (usedWidth, usedHeight)} sub-rectangle of it that the scene was actually rendered
-     * into - for a shared, grow-only FBO (see {@code PreviewCache}) that can be larger than the
-     * current viewport, so the UV range must be derived from that ratio instead of assuming the
-     * full 0..1 texture is filled.
+     * Blits only the {@code (usedWidth, usedHeight)} sub-rectangle of {@code fbo} that was
+     * rendered into - for the shared grow-only FBO, which can be larger than the viewport.
      */
     public static void blitFramebuffer(Framebuffer fbo, int x, int y, int width, int height, int usedWidth, int usedHeight, float z)
     {

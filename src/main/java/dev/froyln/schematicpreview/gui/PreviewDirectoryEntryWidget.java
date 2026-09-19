@@ -25,11 +25,9 @@ import dev.froyln.schematicpreview.data.IconPosition;
 import dev.froyln.schematicpreview.render.PreviewCache;
 
 /**
- * A {@link DirectoryEntryWidget} that shows a live 3D preview (via {@link PreviewCache}'s
- * shared small-preview FBO, never one of its own) instead of the static file-type icon, for
- * file entries when the active {@link PreviewType} calls for one. Directory entries get the
- * same treatment for a custom icon ({@link DirectoryIconStore}) or, absent one, a preview of
- * their first schematic file - see AGENTS.md -> Architecture.
+ * A {@link DirectoryEntryWidget} that draws a live 3D preview over the file-type icon when the
+ * active {@link PreviewType} calls for one; directories show their custom icon
+ * ({@link DirectoryIconStore}) or a preview of their first schematic file.
  */
 public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
 {
@@ -70,10 +68,7 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
             this.translateAndAddHoverString("schematicpreview.button.change_directory_icon");
         }
 
-        // Deliberately not clearing the vanilla type icon here: it stays as-is and shows
-        // through as the fallback whenever nothing above draws over it (still loading, failed
-        // to parse, over previewMaxVolume, or a directory with neither a custom icon nor a
-        // schematic to preview).
+        // The vanilla type icon is kept as the fallback for whatever nothing draws over.
         if (this.showBigVisual)
         {
             if (previewType.isTile())
@@ -177,9 +172,6 @@ public class PreviewDirectoryEntryWidget extends DirectoryEntryWidget
 
         if (this.iconEntry.position == IconPosition.CENTER)
         {
-            // Same box a schematic preview is drawn into - keeps the icon inside the area
-            // textOffset actually reserved for it above, instead of floating in the middle of
-            // a much wider list/list-preview row.
             int[] box = this.previewBox(x, y);
             int scale = Math.max(1, Math.min(box[2], box[3]) / 20);
             int drawX = box[0] + (box[2] - 16 * scale) / 2;

@@ -205,9 +205,7 @@ public class PreviewWidget extends InteractableWidget
             return;
         }
 
-        // Unlike the list/tile previews this ignores previewMaxVolume, but the tessellated
-        // geometry of every non-air block sits in direct memory until upload - a multi-million
-        // block build would run the JVM out of direct buffer memory the moment it's selected.
+        // Ignores previewMaxVolume, but geometry sits in direct memory until upload.
         if (PreviewCache.getBlockCount(schematic) > Configs.Preview.PREVIEW_MAX_BLOCKS.getIntegerValue())
         {
             PreviewRenderUtils.renderPlaceholder(x, y, width, height, z, "schematicpreview.label.preview.too_large", ctx);
@@ -238,14 +236,9 @@ public class PreviewWidget extends InteractableWidget
     }
 
     /**
-     * Resolves a pending {@link #requestCapture(Consumer)} right after this frame's own
-     * {@link #drawSceneToFbo} call - capturing from here, instead of directly from the Save/Copy
-     * button's click handler, means the capture always runs with the exact GL state this frame
-     * just proved works (see the state-pinning comment in {@link PreviewRenderer#draw}), and with
-     * whatever tessellation progress this frame's {@code renderer.tick()} just made. A click
-     * handler runs during input processing, before any of that - capturing there could see
-     * leftover state from the last thing the previous frame's GUI drew, or from unrelated input
-     * handling (the "wrong image" / "white screen" bugs this replaced).
+     * Resolves a pending {@link #requestCapture(Consumer)} right after this frame's
+     * {@link #drawSceneToFbo}, so the capture sees the same GL state and tessellation progress
+     * as the on-screen draw - a click handler runs during input processing, before either.
      */
     private void serviceCaptureRequest(PreviewRenderer renderer)
     {
@@ -306,12 +299,9 @@ public class PreviewWidget extends InteractableWidget
     }
 
     /**
-     * Asks for the current view as a transparent-background image, for the fullscreen screen's
-     * save/copy buttons. {@code callback} runs on the next render frame (see
-     * {@link #serviceCaptureRequest}), with {@code null} if no frame has been rendered yet
-     * (schematic still loading/invalid), or if a large schematic's VBOs haven't finished
-     * incremental tessellation - {@link PreviewRenderer} only uploads its VBOs once the whole
-     * volume is done, so capturing mid-tessellation would silently draw an empty/partial scene.
+     * Asks for the current view as a transparent-background image. {@code callback} runs on the
+     * next render frame, with {@code null} if nothing has rendered yet or tessellation is
+     * still in progress.
      */
     public void requestCapture(Consumer<BufferedImage> callback)
     {

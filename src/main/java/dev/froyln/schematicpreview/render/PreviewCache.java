@@ -39,13 +39,10 @@ public final class PreviewCache
 
     private static final Map<Path, CompletableFuture<ISchematic>> SCHEMATICS = new HashMap<>();
     private static final Map<Path, PreviewRenderer> RENDERERS = new HashMap<>();
-    // Directory -> its first schematic file (Optional.empty() when it has none). malilib
-    // rebuilds every entry widget on each scroll/refresh, so without this the browser did a
-    // Files.list per directory row per rebuild.
+    // Directory -> its first schematic file; malilib rebuilds entry widgets on every scroll.
     private static final Map<Path, Optional<Path>> FIRST_SCHEMATICS = new HashMap<>();
 
-    // Shared by every list/tile row preview - never one Framebuffer per row (see AGENTS.md
-    // security invariants: small widgets share one FBO and render sequentially).
+    // Shared by every list/tile row preview - never one Framebuffer per row.
     @Nullable private static Framebuffer smallFbo;
 
     private PreviewCache()
@@ -66,9 +63,7 @@ public final class PreviewCache
 
                 if (schematic != null)
                 {
-                    // Warms Litematica's per-container block counts here, off-thread: the
-                    // first call walks the whole container, later ones are cached, so
-                    // getBlockCount() on the render thread never stalls the GUI.
+                    // Warms Litematica's cached per-container block counts off-thread.
                     getBlockCount(schematic);
                 }
 
@@ -109,11 +104,7 @@ public final class PreviewCache
         }).orElse(null);
     }
 
-    /**
-     * Non-air block count of {@code schematic}, counted from the containers - the file's own
-     * {@code TotalBlocks} metadata is read verbatim by Litematica and a third-party writer can
-     * put anything there, so it can't be what gates memory use.
-     */
+    /** Non-air block count from the containers; the file's own {@code TotalBlocks} tag is untrusted. */
     public static long getBlockCount(ISchematic schematic)
     {
         long count = 0;
@@ -127,15 +118,9 @@ public final class PreviewCache
     }
 
     /**
-     * Renders a small, non-interactive preview of {@code file} at a fixed camera angle into
-     * the given rectangle (widget/GUI coordinates), gated by {@code Configs.Preview
-     * .PREVIEW_MAX_VOLUME} per the Security invariants in AGENTS.md. Returns {@code false}
-     * (drawing nothing) while the schematic is still loading, failed to parse, or exceeds the
-     * volume cap - callers are expected to already have their own static fallback (the
-     * browser's per-file-type icon) visible underneath for exactly those cases, rather than
-     * this drawing its own placeholder. Unlike {@code PreviewWidget}, this never allocates its
-     * own {@link Framebuffer}; every caller shares one, resized as needed and rendered into
-     * sequentially.
+     * Renders a small fixed-angle preview of {@code file} into the given rectangle, gated by
+     * {@code PREVIEW_MAX_VOLUME}. Returns {@code false} (draws nothing) while loading, on parse
+     * failure, or over the cap - callers keep their own fallback icon underneath.
      */
     public static boolean renderSmallPreview(Path file, int x, int y, int width, int height, float z)
     {
@@ -203,12 +188,7 @@ public final class PreviewCache
         }
     }
 
-    /**
-     * Drops the cached schematic and tessellated renderer for {@code file}, so the next
-     * preview request re-reads it from disk. Call after overwriting a schematic file in place
-     * (see {@code materials.SchematicSaver}) - otherwise the browser keeps showing the
-     * pre-overwrite geometry for that path. Runs on the client thread, same as {@link #close()}.
-     */
+    /** Drops the cached schematic and renderer for {@code file}; call after overwriting it on disk. */
     public static void invalidate(Path file)
     {
         SCHEMATICS.remove(file);
@@ -228,12 +208,7 @@ public final class PreviewCache
         FIRST_SCHEMATICS.remove(directory);
     }
 
-    /**
-     * Forgets every directory's first file. Called whenever a browser list is (re)built, so a
-     * delete/rename in Litematica's schematic manager - which keeps the GUI open - doesn't leave
-     * a row previewing a file that is gone; still one {@code Files.list} per directory per
-     * screen open rather than per widget rebuild.
-     */
+    /** Forgets every directory's first file; called whenever a browser list is (re)built. */
     public static void invalidateDirectories()
     {
         FIRST_SCHEMATICS.clear();

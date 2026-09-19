@@ -26,14 +26,9 @@ import dev.froyln.schematicpreview.materials.MaterialListAccessors;
 import dev.froyln.schematicpreview.materials.SchematicSaver;
 
 /**
- * Adds the Replace button to material lists backed by a schematic or a placement (not the area
- * analyzer, which has no schematic to mutate), and Save/Save as buttons for schematic-backed
- * lists whose schematic has a backing file - lets a Replace edit made from
- * {@code SchematicBrowserScreen}'s "Material list" button (schematic read straight from disk,
- * never loaded/placed) be written back without loading it first. {@code extends BaseScreen}
- * here is the standard Mixin trick to reach the inherited public {@code addWidget} without a
- * {@code @Shadow} for it - stripped by the bytecode merge, the real {@code MaterialListScreen}
- * superclass chain is untouched.
+ * Adds the Replace button to schematic- or placement-backed material lists (not the area
+ * analyzer), and Save/Save as buttons when the schematic has a backing file.
+ * {@code extends BaseScreen} is the usual trick to reach the inherited {@code addWidget}.
  */
 @Mixin(MaterialListScreen.class)
 public abstract class MaterialListScreenMixin extends BaseScreen

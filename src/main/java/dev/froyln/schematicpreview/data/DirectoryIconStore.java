@@ -17,10 +17,8 @@ import dev.froyln.schematicpreview.Reference;
 
 /**
  * Per-directory custom icons, keyed by absolute path with {@code /} separators, persisted to
- * {@code config/schematicpreview_icons.json}. Unknown item ids (deleted mod, typo, hand-edited
- * file) are dropped rather than kept around as dead entries - see AGENTS.md -> Security
- * invariants. The file is rewritten right after each change the user makes (it's a few
- * hundred bytes), never just because a stale entry was dropped on load.
+ * {@code config/schematicpreview_icons.json}. Unknown item ids are dropped on load; the file
+ * is rewritten only after a user change.
  */
 public final class DirectoryIconStore
 {

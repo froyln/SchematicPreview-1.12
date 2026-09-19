@@ -25,19 +25,14 @@ import fi.dy.masa.litematica.schematic.SchematicMetadata;
 import fi.dy.masa.litematica.schematic.container.ILitematicaBlockStateContainer;
 
 /**
- * Replaces every block state that a material list row stands for, across the given regions
- * of a schematic, with another block variant, keeping whichever placement/orientation
- * properties the old state had that don't belong to the new variant's own identity (e.g. a
- * slab's top/bottom half survives, but its stone/quartz/etc. variant is fully replaced
- * instead of merged with the old one).
+ * Replaces every block state a material list row stands for, across the given regions, with
+ * another block variant, keeping the old state's placement/orientation properties (a slab's
+ * half) but not the ones that make up the variant itself (its stone/quartz type).
  * <p>
- * A row is matched by asking Litematica's {@link MaterialCache} for the items each placed
- * state requires - the exact mapping the material list was built from - so rows for
- * item-placed blocks (doors, redstone dust, repeaters, beds, crops...) and for states that
- * need several items (double slabs) resolve to their blocks too, which
- * {@link Block#getBlockFromItem} alone never could. The new variant's identity is expressed
- * via {@link Block#damageDropped(IBlockState)} rather than the raw state metadata, since
- * several vanilla blocks - slabs being the obvious case - pack placement-only bits into it.
+ * Rows are matched through Litematica's {@link MaterialCache} - the mapping the list was built
+ * from - so item-placed blocks (doors, redstone dust) and multi-item states (double slabs)
+ * resolve; {@link Block#getBlockFromItem} alone never could. Variant identity is
+ * {@link Block#damageDropped(IBlockState)}, since raw metadata packs placement bits.
  */
 public final class BlockReplacer
 {
@@ -49,8 +44,7 @@ public final class BlockReplacer
                                ISchematic schematic, Collection<String> regionNames)
     {
         MaterialCache cache = MaterialCache.getInstance();
-        // MaterialCache.getItems() rebuilds its list on every call; a schematic has millions
-        // of positions but only a palette's worth of distinct states, so memoize per state.
+        // MaterialCache.getItems() rebuilds its list on every call; memoize per state.
         Map<IBlockState, Boolean> matches = new IdentityHashMap<>();
         IBlockState newBase = newBlock.getStateFromMeta(newMeta);
         long count = 0;
@@ -128,11 +122,8 @@ public final class BlockReplacer
     }
 
     /**
-     * The old block's tile entity NBT and pending tick must not survive a change of block:
-     * a chest's NBT left under a stone block makes the preview draw a chest lid over it and
-     * the saved file carry dead data. A new tile-entity block gets a fresh default tag
-     * (position in region-local coordinates, same convention as Litematica's own map), so
-     * TESR-only blocks like chests don't come out invisible in the preview.
+     * Drops the old block's tile entity NBT and pending tick, and gives a new tile-entity block
+     * a fresh default tag (TESR-only blocks like chests are invisible without one).
      */
     private static void replaceBlockEntityData(ISchematicRegion region, BlockPos pos, Block newBlock, int newMeta)
     {
@@ -186,9 +177,7 @@ public final class BlockReplacer
             {
                 IBlockState candidate = copyProperty(oldState, result, property);
 
-                // Only keep the old value if it doesn't change the new block's item identity -
-                // i.e. it's a placement/orientation property (like a slab's half), not one of
-                // the properties that make up the picked variant (like a slab's stone/quartz type).
+                // Keep the old value only if it doesn't change the new block's item identity.
                 if (newBlock.damageDropped(candidate) == newMeta)
                 {
                     result = candidate;

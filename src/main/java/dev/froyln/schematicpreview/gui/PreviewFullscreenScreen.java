@@ -28,9 +28,7 @@ public class PreviewFullscreenScreen extends BaseScreen
     {
         this.path = path;
 
-        // malilib's default 0xB0000000 is meant as a translucent overlay over the paused game
-        // world behind a normal GUI - this screen is a focused view of the preview itself, so
-        // it should read as a solid backdrop, not let the live world show through around it.
+        // Solid backdrop instead of malilib's translucent default.
         this.backgroundColor = 0xFF000000;
     }
 
@@ -88,11 +86,6 @@ public class PreviewFullscreenScreen extends BaseScreen
         }
     }
 
-    /**
-     * Routes to {@link PreviewWidget#requestCapture}, which resolves on the widget's next render
-     * frame rather than synchronously - see the comment on {@code serviceCaptureRequest} there
-     * for why a capture can't just run straight from this button click.
-     */
     private void requestImage(Consumer<BufferedImage> onImage)
     {
         if (this.widget == null)

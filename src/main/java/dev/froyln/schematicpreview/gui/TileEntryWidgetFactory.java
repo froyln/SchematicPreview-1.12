@@ -15,22 +15,11 @@ import dev.froyln.schematicpreview.config.Configs;
 import dev.froyln.schematicpreview.config.PreviewType;
 
 /**
- * Grid layout for {@link PreviewType#isTile()} types. Malilib's own {@code ListEntryWidgetFactory}
- * is hard-coded to one column (no multi-column body layout exists anywhere in malilib), so this
- * is a from-scratch replacement rather than an extension of anything.
- *
- * <p>Can't call {@code BaseFileBrowserWidget.createListEntryWidget} (the usual way one entry
- * widget gets built) - it's {@code protected} and this class lives in a different package.
- * Instead it's handed the exact same {@code DataListEntryWidgetFactory} lambda the widget's own
- * default (single-column) path uses, and calls it directly with a manually-built
- * {@link DataListEntryWidgetData}.
- *
- * <p>{@link #getTotalListWidgetCount()} returns the number of <em>rows</em>, not raw entries -
- * {@code BaseListWidget} uses that count for scroll clamping and keyboard paging, so scrolling
- * and page up/down naturally work in row units. The one place this doesn't fully reconcile is
- * {@code BaseListWidget.updateScrollBarHeight()}'s per-widget-height branch, which would index
- * the flat entry-widget list by row number - that only affects the scrollbar thumb's rendered
- * size (cosmetic), not the actual scroll range, so it's left alone.
+ * Grid layout for {@link PreviewType#isTile()} types; malilib's {@code ListEntryWidgetFactory}
+ * is single-column only. Builds entries through the same {@code DataListEntryWidgetFactory}
+ * lambda the default path uses ({@code createListEntryWidget} is protected).
+ * {@link #getTotalListWidgetCount()} returns rows, not entries, so scrolling and paging work
+ * in row units.
  */
 public class TileEntryWidgetFactory implements ListEntryWidgetFactory
 {
