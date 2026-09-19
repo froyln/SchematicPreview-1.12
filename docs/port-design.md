@@ -1,9 +1,9 @@
 # Port design: SchematicPreview → LiteLoader 1.12.2
 
-Companion to `AGENTS.md` (facts) and `PLAN.md` (tasks). This document is the *how*: which
+Companion to `AGENTS.md` (facts). This document is the *how*: which
 Litematica/MaLiLib hooks are used, how the 3D preview is rendered on the 1.12.2 pipeline,
 the build setup, and the risks. Every `file:line` below was checked against the reference
-sources listed at the top of `PLAN.md` (Litematica `1db931a6`, MaLiLib `2b8e96ce`).
+sources (Litematica `1db931a6`, MaLiLib `2b8e96ce`).
 
 ## 1. Scope
 
@@ -211,7 +211,7 @@ T1 skeleton ──► T2 renderer + side panel ──► T3 entry types/tile gri
 T5 can be done right after T1 if the renderer stalls. T3 depends on T2's `PreviewCache`
 small widgets. T4 depends on T3's entry widget.
 
-Definition of done per task = its `PLAN.md` Acceptance + `./gradlew build` exit 0 + `/review`.
+Definition of done per task = its acceptance items + `./gradlew build` exit 0.
 
 ## 8. Risk register
 

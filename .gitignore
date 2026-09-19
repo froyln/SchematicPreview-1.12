@@ -30,3 +30,11 @@ build.number
 .settings/
 bin/
 __pycache__/
+
+# Claude Code workflow + local test tooling (kept on this machine only)
+.claude/
+CLAUDE.md
+CLAUDE.local.md.example
+.mcp.json.example
+PLAN.md
+tools/test-in-game.sh

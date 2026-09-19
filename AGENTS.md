@@ -13,9 +13,8 @@ want the modern browser experience.
 port the behavior, never copy its source. The reference clone lives outside the repo and
 is for reading only.**
 
-> AI agents: `CLAUDE.md` imports this file and adds the working agreement. Task state is in
-> `PLAN.md`. Path-specific rules are in `.claude/rules/`. The detailed port design (verified
-> hook points, render pipeline, build setup, risks) is `docs/port-design.md`.
+> The detailed port design (verified hook points, render pipeline, build setup, risks) is
+> `docs/port-design.md`.
 
 ## Tech stack
 
@@ -49,7 +48,6 @@ export JAVA_HOME=.jdk-cache/jdk8u302-b08 # JDK 8; use the pinned 8u302 (see Gotc
 ./gradlew build                 # build → build/libs/schematicpreview-liteloader-1.12.2-<ver>.litemod
 ./gradlew runClient             # run MC 1.12.2 dev client from ./minecraft (LiteLoader tweaker)
 ./gradlew compileJava           # fast check while iterating
-tools/test-in-game.sh           # alternative to runClient - see Verification below
 ```
 
 No unit tests. `compileJava` is the smallest check; `build` also runs mixin refmap generation
@@ -64,29 +62,20 @@ The check that must pass before any change is called done:
 ./gradlew build      # must exit 0 with JAVA_HOME pointing at JDK 8
 ```
 
-Then verify by hand: the acceptance items of the current `PLAN.md` task describe what to look
-at. There are no automated tests for rendering. Two ways to get an in-game session:
+Then verify by hand — there are no automated tests for rendering. Two ways to get an in-game session:
 
 - `./gradlew runClient` — the dev client, from `./minecraft` (LiteLoader mods menu → the mod is
   listed; open Litematica → Load Schematics). On this network its first-run asset download is
   unreliable (`resources.download.minecraft.net` returns HTTP 400 for most sound assets — a
   CDN/network issue, not this project's bug).
-- `./gradlew build && tools/test-in-game.sh` — copies the freshly built litemod into the
-  existing PrismLauncher instance at `~/.local/share/PrismLauncher/instances/1.12.2 test ai`
-  (already has LiteLoader 1.12.2, litematica, and malilib installed, assets already downloaded,
-  a folder of real schematics under `minecraft/schematics/`) and launches straight into it,
-  offline, via `prismlauncher --launch`. Preferred when `runClient` stalls. That instance's
-  malilib is **0.54.0**, one minor version ahead of this project's pinned `0.53.0` — noted as a
-  possible source of divergence if something behaves differently there than in `runClient`, but
-  **it does matter for popup screens** — see Gotchas, `PopupScreenCompat`.
-
-This command is also what `.claude/hooks/verify-on-stop.sh` runs when enabled, and the
-default `/goal` condition: "`./gradlew build` exits 0".
+- A real launcher instance — copy `build/libs/*.litemod` into the `mods/1.12.2/` folder of any
+  1.12.2 LiteLoader instance that has litematica and malilib installed. Preferred when
+  `runClient` stalls. Test against malilib **0.54.0** as well as the pinned `0.53.0`: one minor
+  version apart, and **it does matter for popup screens** — see Gotchas, `PopupScreenCompat`.
 
 ## Project structure
 
-All seven PLAN.md tasks are done (first release 1.0.0). The `[task N]` tags below only record
-which task introduced a file:
+The `[task N]` tags below only record which port task introduced a file (first release 1.0.0):
 
 ```
 build.gradle / build.properties / settings.gradle / gradle.properties  # FG 2.3 liteloader build
@@ -251,15 +240,17 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   with `setParent(GuiUtils.getCurrentScreen())`.
 - No vanilla-only APIs from Forge (`ForgeHooksClient`, `net.minecraftforge.*`) — LiteLoader
   has no Forge.
-- Git and commit rules: see `.claude/rules/git.md`. Testing rules: `.claude/rules/testing.md`.
+- Commits: Conventional Commits (`feat:`, `fix:`, `refactor:`, `build:`, `docs:`), imperative
+  subject ≤ 72 chars, optional scope = package. One change per commit. Never commit
+  `libs/*.litemod`, `minecraft/` or `build/`.
 
 ## Gotchas
 
 - **Casting to an accessor-mixin interface has two separate failure modes — the fix needs a
   plain class *outside* the whole `mixin` package, not just outside the `@Mixin` class.**
-  `./gradlew build`/`compileJava` catch neither; both only surfaced at runtime via
-  `tools/test-in-game.sh` (`./gradlew runClient` on this network never gets far enough to hit
-  either). Found in two rounds against the real game:
+  `./gradlew build`/`compileJava` catch neither; both only surfaced at runtime in a real game
+  instance (`./gradlew runClient` on this network never gets far enough to hit either). Found
+  in two rounds against the real game:
   1. Casting `((BaseListWidgetAccessor) listWidget)...` straight inside
      `BaseSchematicBrowserScreenMixin`'s own `@Inject` method throws at game launch:
      `InvalidMixinException: Resolution error: unable to find corresponding type for
@@ -342,7 +333,7 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   bound* `GL_ARRAY_BUFFER`, not a client-side pointer; calling them with no buffer bound throws
   `OpenGLException: Cannot use offsets when Array Buffer Object is disabled` — a runtime-only
   crash, invisible to `./gradlew build`/`compileJava` and only hit once something actually
-  renders (found via `tools/test-in-game.sh`, not `runClient`). `PreviewRenderer.drawLayer()`
+  renders (found in a real game instance, not `runClient`). `PreviewRenderer.drawLayer()`
   had this backwards once already; the correct order is `vbo.bindBuffer()` →
   `glEnableClientState`/pointer setup → `vbo.drawArrays(...)`, matching
   `VboRenderListSchematic.renderBlocks` in the Litematica reference source.
@@ -366,8 +357,8 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   renderers (`TileEntityEndPortalRenderer` especially, used by `minecraft:end_portal` — schematics
   with an end-portal-based duper hit this) leave GL state changed on the assumption that the next
   *world* render frame will reset it: `GlStateManager.enableLighting()` unconditionally at the end,
-  a foreign blend func, texgen coords still enabled. Two real bugs from this, both found via
-  `tools/test-in-game.sh` (invisible to `./gradlew build`): (1) selecting an end-portal schematic
+  a foreign blend func, texgen coords still enabled. Two real bugs from this, both found in a
+  real game instance (invisible to `./gradlew build`): (1) selecting an end-portal schematic
   left lighting on, so the rest of that GUI frame — every widget malilib drew afterward — came out
   flat grey/white; (2) capturing from the click handler inherited whatever the *previous* frame's
   last GL calls were (often `Framebuffer`'s own post-render blit, which disables alpha test) rather
@@ -426,7 +417,7 @@ This is a client-side mod with no network surface. Trust boundaries are files on
   `y + screenHeight - 26`, i.e. off-screen. Independent of the vanilla GUI scale (user tried).
   Proven with a tick-handler log of the live screen: `280x80` right after construction,
   `938x503` (= window) once open. `./gradlew build` can't catch it (0.53 has no such method);
-  `tools/test-in-game.sh`'s instance runs 0.54 and does. The helper calls
+  a 0.54 instance does. The helper calls
   `setUseWindowDimensions(false)` reflectively when it exists, so one litemod works on both.
   Any new `ConfirmActionScreen`/`TextInputScreen`/`BaseTextInputScreen` subclass must go through
   it.

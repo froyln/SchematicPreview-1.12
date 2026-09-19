@@ -50,7 +50,7 @@ re-implemented from scratch:
 - **Open schematics folder:** in Litematica's main menu, under *Configuration menu*. Opens
   the folder Litematica loads schematics from (`schematics/` in the game directory).
 
-Task history and design notes: `PLAN.md`, `AGENTS.md`, `docs/port-design.md`.
+Design notes: `AGENTS.md`, `docs/port-design.md`.
 
 ## Requirements (runtime)
 
