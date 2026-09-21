@@ -33,6 +33,11 @@ import fi.dy.masa.litematica.schematic.container.ILitematicaBlockStateContainer;
  * from - so item-placed blocks (doors, redstone dust) and multi-item states (double slabs)
  * resolve; {@link Block#getBlockFromItem} alone never could. Variant identity is
  * {@link Block#damageDropped(IBlockState)}, since raw metadata packs placement bits.
+ * <p>
+ * {@link ContainerAccessors#forceRealResizeOnOverflow} is called on every region's container
+ * before any {@code setBlockState} - see its doc for why: without it, replacing enough distinct
+ * states to overflow a hash-map palette can write a file with a palette one entry too large for
+ * its packed bit width, which crashes the game on load/place.
  */
 public final class BlockReplacer
 {
@@ -59,6 +64,7 @@ public final class BlockReplacer
             }
 
             ILitematicaBlockStateContainer container = region.getBlockStateContainer();
+            ContainerAccessors.forceRealResizeOnOverflow(container);
             Vec3i size = container.getSize();
 
             for (int y = 0; y < size.getY(); ++y)

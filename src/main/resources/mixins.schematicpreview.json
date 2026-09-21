@@ -12,6 +12,7 @@
 		"MaterialListScreenMixin",
 		"MaterialListSchematicAccessor",
 		"MaterialListPlacementAccessor",
+		"LitematicaBlockStateContainerFullAccessor",
 		"MainMenuScreenMixin"
 	],
 	"injectors": {
